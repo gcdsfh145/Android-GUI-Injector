@@ -15,7 +15,10 @@ val defaultManagerPackageName: String by rootProject.extra
 android {
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7eb855b (Detecting zygisk)
     buildFeatures {
         viewBinding = true
         buildConfig = true

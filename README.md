@@ -19,6 +19,10 @@ GUI App for Injecting shared libraries or dex on Android
 - [x] Bypass some common detections
 - [x] Select target library through file picker
 - [x] Easy to use UI
+<<<<<<< HEAD
+=======
+- [x] Detecting zygisk
+>>>>>>> 7eb855b (Detecting zygisk)
 - [ ] Inject through zygote
 - [ ] Spoof app package name (to be added)
 - [ ] Support injecting dex (to be added)
