@@ -10,11 +10,8 @@ plugins {
 
 val defaultManagerPackageName by extra("io.github.reveny.injector")
 val verCode by extra(3)
-<<<<<<< HEAD
 val verName by extra("3.0.0")
-=======
 val verName by extra("3.0.1")
->>>>>>> 7eb855b (Detecting zygisk)
 val androidTargetSdkVersion by extra(35)
 val androidMinSdkVersion by extra(23)
 val androidBuildToolsVersion by extra("35.0.0")

@@ -11,77 +11,27 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
-<<<<<<< HEAD
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-=======
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
->>>>>>> 7eb855b (Detecting zygisk)
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.text.HtmlCompat;
-<<<<<<< HEAD
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.DialogFragment;
-
-import java.io.File;
-=======
 import androidx.fragment.app.DialogFragment;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
->>>>>>> 7eb855b (Detecting zygisk)
 
 import io.github.reveny.injector.App;
 import io.github.reveny.injector.BuildConfig;
 import io.github.reveny.injector.R;
-<<<<<<< HEAD
-=======
 import io.github.reveny.injector.core.Utility;
->>>>>>> 7eb855b (Detecting zygisk)
 import io.github.reveny.injector.databinding.DialogAboutBinding;
 import io.github.reveny.injector.databinding.FragmentHomeBinding;
 import io.github.reveny.injector.ui.activity.SettingsActivity;
 import io.github.reveny.injector.ui.dialog.BlurBehindDialogBuilder;
-<<<<<<< HEAD
-import io.github.reveny.injector.core.Utility;
-import io.github.reveny.injector.util.chrome.LinkTransformationMethod;
-import rikka.material.app.LocaleDelegate;
-
-public class HomeFragment extends BaseFragment implements MenuProvider {
-    private FragmentHomeBinding binding;
-    private final SharedPreferences pref = App.getPreferences();
-
-    @Override
-    public void onPrepareMenu(Menu menu) {
-        menu.findItem(R.id.menu_settings).setOnMenuItemClickListener(v -> {
-            startActivity(new Intent(requireActivity(), SettingsActivity.class));
-            return true;
-        });
-        menu.findItem(R.id.menu_about).setOnMenuItemClickListener(v -> {
-            showAbout();
-            return true;
-        });
-    }
-
-    @Override
-    public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-
-    }
-
-    @Override
-    public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-        return false;
-    }
-
-=======
 import io.github.reveny.injector.util.chrome.LinkTransformationMethod;
 import rikka.material.app.LocaleDelegate;
 
@@ -89,7 +39,6 @@ public class HomeFragment extends BaseFragment {
     private FragmentHomeBinding binding;
     private final SharedPreferences pref = App.getPreferences();
 
->>>>>>> 7eb855b (Detecting zygisk)
     @SuppressLint("NotifyDataSetChanged")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -100,12 +49,6 @@ public class HomeFragment extends BaseFragment {
     }
 
     private void setupToolbar() {
-<<<<<<< HEAD
-        setupToolbar(binding.toolbar, null, R.string.app_name, R.menu.menu_home);
-        binding.toolbar.setNavigationIcon(null);
-        binding.appBar.setLiftable(true);
-        binding.nestedScrollView.getBorderViewDelegate().setBorderVisibilityChangedListener((top, oldTop, bottom, oldBottom) -> binding.appBar.setLifted(!top));
-=======
         binding.toolbar.inflateMenu(R.menu.menu_home);
         binding.toolbar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
@@ -120,21 +63,10 @@ public class HomeFragment extends BaseFragment {
             
             return false;
         });
->>>>>>> 7eb855b (Detecting zygisk)
     }
 
     @SuppressLint("DefaultLocale")
     private void setupDeviceInfo() {
-<<<<<<< HEAD
-        binding.systemVersion.setText(String.format("Android %s (API %d)", android.os.Build.VERSION.RELEASE, android.os.Build.VERSION.SDK_INT));
-        binding.device.setText(String.format("%s %s", Build.BRAND, Build.MODEL));
-        binding.systemAbi.setText(android.os.Build.SUPPORTED_ABIS[0]);
-        binding.isRooted.setText(Utility.isRooted() ? "Yes" : "No");
-
-        String[] packageNames = {"io.github.huskydg.magisk", "me.weishu.kernelsu", "me.bmax.apatch", "io.github.vvb2060.magisk", "com.topjohnwu.magisk", "com.sukisu.ultra"};
-        binding.rootSystem.setText(checkRootSolution(requireContext(), packageNames));
-        binding.isEmulator.setText(Utility.isEmulator() ? "Yes" : "No");
-=======
         binding.systemVersion.setText(String.format("Android %s (API %d)", Build.VERSION.RELEASE, Build.VERSION.SDK_INT));
         binding.device.setText(String.format("%s %s", Build.BRAND, Build.MODEL));
         binding.systemAbi.setText(getPrimaryAbi());
@@ -230,33 +162,15 @@ public class HomeFragment extends BaseFragment {
     private String checkSecurityStatusFallback() {
         String selinuxStatus = getSELinuxStatus();
         return "SELinux: " + selinuxStatus;
->>>>>>> 7eb855b (Detecting zygisk)
     }
 
     public String checkRootSolution(Context context, String[] packageNames) {
         PackageManager packageManager = context.getPackageManager();
-<<<<<<< HEAD
-=======
         
->>>>>>> 7eb855b (Detecting zygisk)
         for (String packageName : packageNames) {
             try {
                 PackageInfo packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
                 if (packageInfo != null) {
-<<<<<<< HEAD
-                    return packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                // Continue checking the next package name
-            }
-        }
-
-        // If not detected, it's likely that it runs magisk with a spoofed package name
-        // We can just check for magisk binary here.
-        // TODO: Need to check if the path is still reliable
-        if (new File("/sbin/magiskpolicy").exists()) {
-            return "Magisk";
-=======
                     String appName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
                     return appName;
                 }
@@ -278,14 +192,11 @@ public class HomeFragment extends BaseFragment {
             if (new File(path).exists()) {
                 return "Magisk";
             }
->>>>>>> 7eb855b (Detecting zygisk)
         }
 
         return "Not detected";
     }
 
-<<<<<<< HEAD
-=======
     private String getSELinuxStatus() {
         try {
             Process process = Runtime.getRuntime().exec("getenforce");
@@ -309,7 +220,6 @@ public class HomeFragment extends BaseFragment {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
     }
 
->>>>>>> 7eb855b (Detecting zygisk)
     public static class AboutDialog extends DialogFragment {
         @NonNull
         @Override

@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 <?xml version="1.0" encoding="utf-8"?>
->>>>>>> 7eb855b (Detecting zygisk)
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -34,13 +31,8 @@
                 android:layout_height="?actionBarSize"
                 android:elevation="0dp"
                 app:layout_collapseMode="pin" />
-<<<<<<< HEAD
-        </com.google.android.material.appbar.CollapsingToolbarLayout>
-
-=======
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
->>>>>>> 7eb855b (Detecting zygisk)
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -71,8 +63,6 @@
                 android:paddingVertical="?dialogPreferredPadding"
                 tools:context=".ui.activity.MainActivity">
 
-<<<<<<< HEAD
-=======
                 <!-- GUI Injector Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -98,7 +88,6 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- System Information Card -->
->>>>>>> 7eb855b (Detecting zygisk)
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/info_card"
                     android:layout_width="match_parent"
@@ -170,8 +159,6 @@
                             style="@style/DeviceInfoDialogLabel"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-<<<<<<< HEAD
-=======
                             android:text="Zygisk Status" />
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/zygisk_status"
@@ -183,22 +170,12 @@
                             style="@style/DeviceInfoDialogLabel"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
->>>>>>> 7eb855b (Detecting zygisk)
                             android:text="@string/info_is_emulator" />
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/is_emulator"
                             style="@style/DeviceInfoDialogValue"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content" />
-<<<<<<< HEAD
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-        </rikka.widget.borderview.BorderNestedScrollView>
-    </FrameLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
-=======
 
                         <com.google.android.material.textview.MaterialTextView
                             style="@style/DeviceInfoDialogLabel"
@@ -219,4 +196,3 @@
         </rikka.widget.borderview.BorderNestedScrollView>
     </FrameLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
->>>>>>> 7eb855b (Detecting zygisk)
