@@ -1,0 +1,11 @@
+<resources>
+    <color name="primary_text_material_inverse">@color/abc_primary_text_material_dark</color>
+
+    <color name="primary_text_material">@color/abc_primary_text_material_light</color>
+
+    <color name="ic_launcher_foreground">#FFFFFF</color>
+    <color name="light_blue_400">#FF29B6F6</color>
+    <color name="light_blue_600">#FF039BE5</color>
+    <color name="gray_400">#FFBDBDBD</color>
+    <color name="gray_600">#FF757575</color>
+</resources>
