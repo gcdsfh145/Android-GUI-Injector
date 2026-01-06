@@ -24,6 +24,8 @@ import androidx.annotation.Nullable;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -160,6 +162,14 @@ public class InjectionFragment extends BaseFragment {
         
         // 获取所有非系统应用
         List<ApplicationInfo> packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+        
+        // 按包名进行排序
+        Collections.sort(packages, new Comparator<ApplicationInfo>() {
+            @Override
+            public int compare(ApplicationInfo a, ApplicationInfo b) {
+                return a.packageName.compareToIgnoreCase(b.packageName);
+            }
+        });
         
         for (ApplicationInfo packageInfo : packages) {
             if ((packageInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
