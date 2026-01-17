@@ -132,8 +132,27 @@ int JNIProxy::DexLoad(JavaVM *vm, RemoteInjectorData *data) {
         return -1;
     }
 
-    // Call the method (assuming it's a static method with no arguments for now)
-    jmethodID methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "()V");
+    // Get the current Application (Context)
+    jclass activityThreadClass = env->FindClass("android/app/ActivityThread");
+    jmethodID currentActivityThreadMethod = env->GetStaticMethodID(activityThreadClass, "currentActivityThread", "()Landroid/app/ActivityThread;");
+    jobject activityThread = env->CallStaticObjectMethod(activityThreadClass, currentActivityThreadMethod);
+    jmethodID getApplicationMethod = env->GetMethodID(activityThreadClass, "getApplication", "()Landroid/app/Application;");
+    jobject currentContext = env->CallObjectMethod(activityThread, getApplicationMethod);
+
+    if (currentContext == NULL) {
+        LOGW("[!] Could not get Application Context, falling back to argumentless call");
+    }
+
+    // Try calling with (Context) parameter
+    jmethodID methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "(Landroid/content/Context;)V");
+    if (methodId != NULL && currentContext != NULL) {
+        env->CallStaticVoidMethod(loadedClass, methodId, currentContext);
+        LOGI("[+] Successfully called static %s(Context)", (char*)data->dexMethodName);
+        return 1;
+    }
+
+    // Fallback: Call the method (assuming it's a static method with no arguments)
+    methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "()V");
     if (methodId == NULL) {
         // Try with ([Ljava/lang/String;)V (standard main method)
         methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "([Ljava/lang/String;)V");

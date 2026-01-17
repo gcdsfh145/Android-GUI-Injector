@@ -33,10 +33,11 @@ LOCAL_MODULE    := RevenyProxy
 LOCAL_CPPFLAGS += -fexceptions -Werror -Wextra -Wpedantic -Wshadow -Wconversion -w -s -std=c++17
 LOCAL_STATIC_LIBRARIES := libxdl liblsplt
 
-LOCAL_SRC_FILES := Proxy/Proxy.cpp \
-                   Proxy/JNIProxy.cpp \
-                   Utility/Utility.cpp \
-                   Utility/RemapTools.cpp \
+LOCAL_SRC_FILES := \
+    Proxy/Proxy.cpp \
+    Proxy/JNIProxy.cpp \
+    Utility/RemapTools.cpp \
+    Utility/Utility.cpp \
 
 LOCAL_LDLIBS := -llog -landroid
 

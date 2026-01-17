@@ -215,21 +215,6 @@
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/inject_zygote_holder"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/inject_zygote"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:layout_weight="1"
-                        android:text="@string/inject_through_zygote" />
-                </LinearLayout>
-
-                <LinearLayout
                     android:id="@+id/remap_library_holder"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">

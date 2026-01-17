@@ -189,6 +189,7 @@ public class InjectionFragment extends BaseFragment {
                 String appName = selectedApp.loadLabel(packageManager).toString();
                 
                 injectorData.setPackageName(packageName);
+                injectorData.setAppUid(selectedApp.uid);
                 injectorData.setLauncherActivity(Utility.getLaunchActivity(requireContext(), packageName));
 
                 String processID = RootManager.instance.getPid(packageName);
@@ -318,22 +319,6 @@ public class InjectionFragment extends BaseFragment {
     }
 
     private void setupSettings() {
-        binding.injectZygote.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                binding.enableProxy.setChecked(false);
-                binding.autoLaunch.setChecked(true);
-            }
-
-            if (Utility.isEmulator()) {
-                Toast.makeText(requireContext(), "Emulator detected, zygote injection is not supported here yet!", Toast.LENGTH_LONG).show();
-                if (isChecked) binding.bypassRestrictions.setChecked(false);
-                return;
-            }
-
-            injectorData.setInjectZygote(isChecked);
-            LogManager.AddLog("Inject Zygote: " + isChecked);
-        });
-
         binding.remapLib.setOnCheckedChangeListener((buttonView, isChecked) -> {
             injectorData.setRemapLibrary(isChecked);
             LogManager.AddLog("Remap Library: " + isChecked);

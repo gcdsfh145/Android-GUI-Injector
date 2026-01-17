@@ -31,7 +31,7 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     // to copy it to a directory where it can be executed from.
     // We can just copy it to a random directory in /data/local/tmp
     std::filesystem::path currentPath = injectorData->getLibraryPath();
-    std::string tmpDir = CreateRandomTempDirectory(injectorData->getPackageName());
+    std::string tmpDir = CreateRandomTempDirectory(injectorData);
     if (tmpDir.empty()) {
         LOGE("[-] Failed to create temporary directory, aborting injection.");
         return -1;
@@ -58,6 +58,11 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     // Wait until process is ready
     pid_t processID = RevMemory::WaitForProcess(injectorData->getPackageName());
 
+    if (processID == -1) {
+        LOGE("[-] Failed to find target process, aborting.");
+        return -1;
+    }
+
     // Adjust the library path if proxy is enabled or if it is a DEX injection
     if (injectorData->getUseProxy() || injectorData->getInjectType() == 1) {
         // Get library directory
@@ -77,10 +82,8 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
             libraryPath = tmpLibraryPath;
         }
 
-        // Inject proxy, we pass the injector data here because
-        // we need to pass everything to the proxy that it needs to do.
-        pid_t pid = RevMemory::FindProcessID(injectorData->getPackageName());
-        int result = RevMemory::InjectProxy(pid, libraryPath, injectorData);
+        // Inject proxy to the chosen process (Zygote or App)
+        int result = RevMemory::InjectProxy(processID, libraryPath, injectorData);
         LOGI("[+] Finished Proxy Injection with result %d", result);
 
         // Handle SELinux
@@ -177,8 +180,8 @@ void Injector::CopyFile(const std::filesystem::path& source, const std::filesyst
              return;
         }
 
-        // Set permissions: Read-only for others, or at least NOT writable by others
-        if (chmod(destination.string().c_str(), 0644) == -1) {
+        // Set permissions: Read-Execute, but NOT writable by anyone (even owner)
+        if (chmod(destination.string().c_str(), 0555) == -1) {
             LOGE("[-] Failed to set permissions on %s ([%d] %s)", destination.c_str(), errno, strerror(errno));
             return;
         }
@@ -217,23 +220,13 @@ std::string Injector::GenerateRandomString() {
 }
 
 // Not really random but it used to be before changing some of the logic
-std::string Injector::CreateRandomTempDirectory(std::string packageName) {
+std::string Injector::CreateRandomTempDirectory(std::shared_ptr<InjectorData> injectorData) {
+    std::string packageName = injectorData->getPackageName();
+    uid_t uid = (uid_t)injectorData->getAppUid();
+    gid_t gid = uid; // Android 应用的 GID 通常等于其 UID
+
     // Create random directory and return the path so it can be used later.
     std::string tmpDir = "/data/local/tmp/inject/" + packageName;
-
-    // Get the target app's UID and GID by stating its data directory
-    struct stat st;
-    std::string appDataDir = "/data/data/" + packageName;
-    if (stat(appDataDir.c_str(), &st) == -1) {
-        LOGW("[!] Failed to stat %s, falling back to /sdcard/Documents permissions", appDataDir.c_str());
-        if (stat("/sdcard/Documents", &st) == -1) {
-            LOGE("[-] Failed to stat /sdcard/Documents ([%d] %s)", errno, strerror(errno));
-            return "";
-        }
-    }
-
-    uid_t uid = st.st_uid;
-    gid_t gid = st.st_gid;
 
     // Create inject directory first if it doesn't exist
     if (mkdir("/data/local/tmp/inject", 0755) == -1 && errno != EEXIST) {
@@ -243,9 +236,9 @@ std::string Injector::CreateRandomTempDirectory(std::string packageName) {
 
     // Set ownership and permissions for the base directory
     (void)chown("/data/local/tmp/inject", uid, gid);
-    (void)chmod("/data/local/tmp/inject", 0755);
+    (void)chmod("/data/local/tmp/inject", 0555);
 
-    if (mkdir(tmpDir.c_str(), 0755) == -1 && errno != EEXIST) {
+    if (mkdir(tmpDir.c_str(), 0555) == -1 && errno != EEXIST) {
         LOGE("[-] Failed to create directory %s (%s)", tmpDir.c_str(), strerror(errno));
         return "";
     }
@@ -254,7 +247,7 @@ std::string Injector::CreateRandomTempDirectory(std::string packageName) {
         LOGE("[-] Failed to change ownership of directory %s ([%d] %s)", tmpDir.c_str(), errno, strerror(errno));
     }
 
-    if (chmod(tmpDir.c_str(), 0755) == -1) {
+    if (chmod(tmpDir.c_str(), 0555) == -1) {
         LOGE("[-] Failed to set permissions on directory %s ([%d] %s)", tmpDir.c_str(), errno, strerror(errno));
     }
 

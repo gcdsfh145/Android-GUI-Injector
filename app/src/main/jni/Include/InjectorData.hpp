@@ -79,6 +79,7 @@ private:
     std::string libraryPath;
 
     int injectType;
+    int appUid;
     std::string dexClassName;
     std::string dexMethodName;
 
@@ -97,6 +98,7 @@ private:
 public:
     InjectorData() {
         this->injectType = 0;
+        this->appUid = -1;
         this->shouldAutoLaunch = false;
         this->shouldKillBeforeLaunch = false;
         this->injectZygote = false;
@@ -119,6 +121,7 @@ public:
 
             jclass cls = env->GetObjectClass(data);
             this->injectType = env->CallIntMethod(data, env->GetMethodID(cls, "getInjectType", "()I"));
+            this->appUid = env->CallIntMethod(data, env->GetMethodID(cls, "getAppUid", "()I"));
             this->dexClassName = GET_JAVA_STRING(env, data, "getDexClassName");
             this->dexMethodName = GET_JAVA_STRING(env, data, "getDexMethodName");
             env->DeleteLocalRef(cls);
@@ -222,6 +225,10 @@ public:
 
     int getInjectType() {
         return this->injectType;
+    }
+
+    int getAppUid() {
+        return this->appUid;
     }
 
     std::string getDexClassName() {

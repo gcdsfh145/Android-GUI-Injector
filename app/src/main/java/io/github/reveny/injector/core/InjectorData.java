@@ -13,6 +13,7 @@ public class InjectorData {
     private String libraryPath;
 
     private int injectType = 0; // 0 for SO, 1 for DEX
+    private int appUid = -1;
     private String dexClassName = "io.github.reveny.dex.Main";
     private String dexMethodName = "main";
 
@@ -73,6 +74,14 @@ public class InjectorData {
 
     public void setInjectType(int injectType) {
         this.injectType = injectType;
+    }
+
+    public int getAppUid() {
+        return appUid;
+    }
+
+    public void setAppUid(int appUid) {
+        this.appUid = appUid;
     }
 
     public String getDexClassName() {
@@ -171,6 +180,7 @@ public class InjectorData {
         data.putString("launcherActivity", launcherActivity);
         data.putString("libraryPath", libraryPath);
         data.putInt("injectType", injectType);
+        data.putInt("appUid", appUid);
         data.putString("dexClassName", dexClassName);
         data.putString("dexMethodName", dexMethodName);
 
@@ -196,6 +206,7 @@ public class InjectorData {
         this.launcherActivity = data.getString("launcherActivity");
         this.libraryPath = data.getString("libraryPath");
         this.injectType = data.getInt("injectType");
+        this.appUid = data.getInt("appUid");
         this.dexClassName = data.getString("dexClassName");
         this.dexMethodName = data.getString("dexMethodName");
 
