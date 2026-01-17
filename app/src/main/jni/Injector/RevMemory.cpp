@@ -406,6 +406,7 @@ int RevMemory::InjectProxy(pid_t pid, std::string libraryPath, std::shared_ptr<I
 
 uintptr_t RevMemory::CopyInjectorData(std::shared_ptr<RemoteProcess> process, std::shared_ptr<InjectorData> data) {
     RemoteInjectorData remoteData{};
+    remoteData.injectType = data->getInjectType();
     remoteData.shouldAutoLaunch = data->getShouldAutoLaunch();
     remoteData.shouldKillBeforeLaunch = data->getShouldKillBeforeLaunch();
     remoteData.injectZygote = data->getInjectZygote();
@@ -427,9 +428,11 @@ uintptr_t RevMemory::CopyInjectorData(std::shared_ptr<RemoteProcess> process, st
     remoteData.packageName = process->RemoteString(data->getPackageName());
     remoteData.launcherActivity = process->RemoteString(data->getLauncherActivity());
     remoteData.libraryPath = process->RemoteString(data->getLibraryPath());
+    remoteData.dexClassName = process->RemoteString(data->getDexClassName());
+    remoteData.dexMethodName = process->RemoteString(data->getDexMethodName());
 
     // Write the InjectorData structure into the remote process memory
-    process->Write(remote_data, &remoteData, sizeof(InjectorData));
+    process->Write(remote_data, &remoteData, sizeof(RemoteInjectorData));
     return remote_data;
 }
 

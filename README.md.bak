@@ -22,8 +22,7 @@ GUI App for Injecting shared libraries or dex on Android
 - [x] Detecting zygisk
 - [ ] Inject through zygote
 - [ ] Spoof app package name (to be added)
-- [x] Support injecting dex
-
+- [ ] Support injecting dex (to be added)
 
 # Build and Installation
 Android Studio is required: https://developer.android.com/studio  <br />

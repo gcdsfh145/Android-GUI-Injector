@@ -68,9 +68,52 @@ public class InjectionFragment extends BaseFragment {
 
             injectorData.setLibraryPath(path);
             binding.libPath.setText(path);
+
+            if (path.endsWith(".dex")) {
+                binding.injectTabs.getTabAt(1).select();
+            } else {
+                binding.injectTabs.getTabAt(0).select();
+            }
         } else {
             Toast.makeText(getActivity(), "Invalid file type selected. Please select a .so or .dex file.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void setupTabs() {
+        binding.injectTabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                int position = tab.getPosition();
+                injectorData.setInjectType(position);
+                if (position == 0) {
+                    // SO Injection
+                    binding.dexSettingsContainer.setVisibility(View.GONE);
+                    binding.libPathChoose.setHint("Library Path (.so): ");
+                    
+                    // Show SO specific settings
+                    binding.remapLibraryHolder.setVisibility(View.VISIBLE);
+                    binding.proxyLibraryHolder.setVisibility(View.VISIBLE);
+                    binding.randomizeProxyLibraryHolder.setVisibility(View.VISIBLE);
+                    binding.hideLibraryHolder.setVisibility(View.VISIBLE);
+                } else {
+                    // DEX Injection
+                    binding.dexSettingsContainer.setVisibility(View.VISIBLE);
+                    binding.libPathChoose.setHint("DEX Path (.dex): ");
+
+                    // Hide SO specific settings
+                    binding.remapLibraryHolder.setVisibility(View.GONE);
+                    binding.proxyLibraryHolder.setVisibility(View.GONE);
+                    binding.randomizeProxyLibraryHolder.setVisibility(View.GONE);
+                    binding.hideLibraryHolder.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+        });
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -83,6 +126,7 @@ public class InjectionFragment extends BaseFragment {
         
         setupToolbar();
         setupApplist();
+        setupTabs();
         setupAutoLaunch();
         setupSettings();
 
@@ -327,6 +371,11 @@ public class InjectionFragment extends BaseFragment {
     }
 
     private void startInjection() {
+        if (injectorData.getInjectType() == 1) {
+            injectorData.setDexClassName(binding.dexClassName.getText().toString());
+            injectorData.setDexMethodName(binding.dexMethodName.getText().toString());
+        }
+
         LogManager.AddLog("Starting Injection...");
         LogManager.AddLog("Injection Data: " + injectorData.toString());
 

@@ -86,6 +86,74 @@ int JNIProxy::JNILoad(JavaVM *vm, std::string libraryPath) {
     return 1;
 }
 
+int JNIProxy::DexLoad(JavaVM *vm, RemoteInjectorData *data) {
+    JNIEnv *env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        LOGE("[-] Failed to get JNIEnv");
+        return -1;
+    }
+
+    if (vm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("[-] Failed to attach current thread");
+        return -1;
+    }
+
+    LOGI("[+] DexLoad called for: %s", (char*)data->libraryPath);
+
+    // Get a ClassLoader. Using the system class loader might not find application classes,
+    // but for loading a new DEX it should be fine as a parent.
+    jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
+    jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderClass, "getSystemClassLoader", "()Ljava/lang/ClassLoader;");
+    jobject systemClassLoader = env->CallStaticObjectMethod(classLoaderClass, getSystemClassLoaderMethod);
+
+    // Path to DEX and optimized directory (cache)
+    jstring dexPath = env->NewStringUTF((char*)data->libraryPath);
+    
+    // Create DexClassLoader
+    jclass dexClassLoaderClass = env->FindClass("dalvik/system/DexClassLoader");
+    jmethodID dexClassLoaderContructor = env->GetMethodID(dexClassLoaderClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
+
+    // In modern Android (API 26+), optimizedDirectory should be null.
+    // The system will manage optimized dex files in the app's private data directory.
+    jobject dexClassLoader = env->NewObject(dexClassLoaderClass, dexClassLoaderContructor, dexPath, NULL, NULL, systemClassLoader);
+
+    if (dexClassLoader == NULL) {
+        LOGE("[-] Failed to create DexClassLoader");
+        return -1;
+    }
+
+    // Load the class
+    jmethodID loadClassMethod = env->GetMethodID(dexClassLoaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    jstring className = env->NewStringUTF((char*)data->dexClassName);
+    jclass loadedClass = (jclass)env->CallObjectMethod(dexClassLoader, loadClassMethod, className);
+
+    if (loadedClass == NULL) {
+        LOGE("[-] Failed to load class: %s", (char*)data->dexClassName);
+        return -1;
+    }
+
+    // Call the method (assuming it's a static method with no arguments for now)
+    jmethodID methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "()V");
+    if (methodId == NULL) {
+        // Try with ([Ljava/lang/String;)V (standard main method)
+        methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "([Ljava/lang/String;)V");
+        if (methodId != NULL) {
+            jclass stringClass = env->FindClass("java/lang/String");
+            jobjectArray args = env->NewObjectArray(0, stringClass, NULL);
+            env->CallStaticVoidMethod(loadedClass, methodId, args);
+            LOGI("[+] Successfully called static %s with String[] args", (char*)data->dexMethodName);
+            return 1;
+        }
+        LOGE("[-] Failed to find static method: %s", (char*)data->dexMethodName);
+        return -1;
+    }
+
+    env->CallStaticVoidMethod(loadedClass, methodId);
+    LOGI("[+] Successfully called static %s", (char*)data->dexMethodName);
+
+    return 1;
+}
+
 int JNIProxy::Inject(RemoteInjectorData *data) {
     auto get_created_java_vms = GetCreatedJavaVMS();
     if (get_created_java_vms == nullptr) {
@@ -101,6 +169,10 @@ int JNIProxy::Inject(RemoteInjectorData *data) {
     if (res != JNI_OK || vm == nullptr) {
         LOGE("[-] Failed to get JavaVM: %d", res);
         return -1;
+    }
+
+    if (data->injectType == 1) {
+        return DexLoad(vm, data);
     }
 
     int loadResult = JNILoad(vm, (char *)data->libraryPath);

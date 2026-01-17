@@ -58,8 +58,8 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     // Wait until process is ready
     pid_t processID = RevMemory::WaitForProcess(injectorData->getPackageName());
 
-    // Adjust the library path if proxy is enabled
-    if (injectorData->getUseProxy()) {
+    // Adjust the library path if proxy is enabled or if it is a DEX injection
+    if (injectorData->getUseProxy() || injectorData->getInjectType() == 1) {
         // Get library directory
         std::string libraryPath = RevMemory::GetNativeLibraryDirectory() + "libRevenyProxy.so";
 
@@ -170,34 +170,21 @@ void Injector::CopyFile(const std::filesystem::path& source, const std::filesyst
         std::filesystem::copy_file(source, destination, std::filesystem::copy_options::overwrite_existing);
         LOGI("[+] File %s copied successfully to %s.", source.c_str(), destination.c_str());
 
-        // Set permissions
-        if (chmod(destination.string().c_str(), 0777) == -1) {
+        // Get the directory's UID/GID to apply to the file
+        struct stat dst_st;
+        if (stat(destination.parent_path().string().c_str(), &dst_st) == -1) {
+             LOGE("[-] Failed to stat destination directory");
+             return;
+        }
+
+        // Set permissions: Read-only for others, or at least NOT writable by others
+        if (chmod(destination.string().c_str(), 0644) == -1) {
             LOGE("[-] Failed to set permissions on %s ([%d] %s)", destination.c_str(), errno, strerror(errno));
             return;
         }
 
-        struct stat st;
-        if (stat("/sdcard/Documents", &st) == -1) {
-            LOGE("[-] Failed to stat /sdcard/Documents ([%d] %s)", errno, strerror(errno));
-            return;
-        }
-
-        // Set the ownership to 'shell' user and group, I think that's not necessary
-        // but I encountered some issues on emulators.
-        struct passwd *pwd = getpwnam("shell");
-        if (pwd == NULL) {
-            LOGE("[-] Failed to get 'shell' user information");
-        }
-        uid_t uid = pwd->pw_uid;
-
-        struct group *grp = getgrnam("shell");
-        if (grp == NULL) {
-            LOGE("[-] Failed to get 'shell' group information");
-        }
-        gid_t gid = grp->gr_gid;
-
-        if (chown(destination.string().c_str(), uid, gid) == -1) {
-            LOGE("[-] Failed to change ownership of directory %s ([%d] %s)", destination.string().c_str(), errno, strerror(errno));
+        if (chown(destination.string().c_str(), dst_st.st_uid, dst_st.st_gid) == -1) {
+            LOGE("[-] Failed to change ownership of file %s ([%d] %s)", destination.string().c_str(), errno, strerror(errno));
         }
 
         // For some reason this causes an error?
@@ -232,36 +219,33 @@ std::string Injector::GenerateRandomString() {
 // Not really random but it used to be before changing some of the logic
 std::string Injector::CreateRandomTempDirectory(std::string packageName) {
     // Create random directory and return the path so it can be used later.
-    std::string tmpDir = "/data/local/tmp/inject/" + packageName; // + GenerateRandomString(10);
+    std::string tmpDir = "/data/local/tmp/inject/" + packageName;
 
-    // Stat download directory to know target UID and GID. The issue is that we create this
-    // tmp directory as root which means that no app can access it and open the library
-    // that's why we just copy the permissions from /sdcard/Documents
+    // Get the target app's UID and GID by stating its data directory
     struct stat st;
-    if (stat("/sdcard/Documents", &st) == -1) {
-        LOGE("[-] Failed to stat /sdcard/Documents ([%d] %s)", errno, strerror(errno));
-        return "";
+    std::string appDataDir = "/data/data/" + packageName;
+    if (stat(appDataDir.c_str(), &st) == -1) {
+        LOGW("[!] Failed to stat %s, falling back to /sdcard/Documents permissions", appDataDir.c_str());
+        if (stat("/sdcard/Documents", &st) == -1) {
+            LOGE("[-] Failed to stat /sdcard/Documents ([%d] %s)", errno, strerror(errno));
+            return "";
+        }
     }
 
     uid_t uid = st.st_uid;
     gid_t gid = st.st_gid;
 
-    // TODO: Clean this up
     // Create inject directory first if it doesn't exist
-    if (mkdir("/data/local/tmp/inject", 0777) == -1 && errno != EEXIST) {
+    if (mkdir("/data/local/tmp/inject", 0755) == -1 && errno != EEXIST) {
         LOGE("[-] Failed to create directory /data/local/tmp/inject ([%d] %s)", errno, strerror(errno));
         return "";
     }
 
-    if (chown("/data/local/tmp/inject", uid, gid) == -1) {
-        LOGE("[-] Failed to change ownership of directory /data/local/tmp/inject ([%d] %s)", errno, strerror(errno));
-    }
+    // Set ownership and permissions for the base directory
+    (void)chown("/data/local/tmp/inject", uid, gid);
+    (void)chmod("/data/local/tmp/inject", 0755);
 
-    if (chmod("/data/local/tmp/inject", 0777) == -1) {
-        LOGE("[-] Failed to set permissions on directory /data/local/tmp/inject ([%d] %s)", errno, strerror(errno));
-    }
-
-    if (mkdir(tmpDir.c_str(), 0777) == -1 && errno != EEXIST) {
+    if (mkdir(tmpDir.c_str(), 0755) == -1 && errno != EEXIST) {
         LOGE("[-] Failed to create directory %s (%s)", tmpDir.c_str(), strerror(errno));
         return "";
     }
@@ -270,7 +254,7 @@ std::string Injector::CreateRandomTempDirectory(std::string packageName) {
         LOGE("[-] Failed to change ownership of directory %s ([%d] %s)", tmpDir.c_str(), errno, strerror(errno));
     }
 
-    if (chmod(tmpDir.c_str(), 0777) == -1) {
+    if (chmod(tmpDir.c_str(), 0755) == -1) {
         LOGE("[-] Failed to set permissions on directory %s ([%d] %s)", tmpDir.c_str(), errno, strerror(errno));
     }
 

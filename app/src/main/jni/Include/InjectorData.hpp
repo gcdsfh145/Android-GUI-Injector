@@ -55,6 +55,10 @@ struct RemoteInjectorData {
     uintptr_t launcherActivity;
     uintptr_t libraryPath;
 
+    int injectType;
+    uintptr_t dexClassName;
+    uintptr_t dexMethodName;
+
     bool shouldAutoLaunch;
     bool shouldKillBeforeLaunch;
     bool injectZygote;
@@ -74,6 +78,10 @@ private:
     std::string launcherActivity;
     std::string libraryPath;
 
+    int injectType;
+    std::string dexClassName;
+    std::string dexMethodName;
+
     bool shouldAutoLaunch;
     bool shouldKillBeforeLaunch;
     bool injectZygote;
@@ -88,6 +96,7 @@ private:
 
 public:
     InjectorData() {
+        this->injectType = 0;
         this->shouldAutoLaunch = false;
         this->shouldKillBeforeLaunch = false;
         this->injectZygote = false;
@@ -107,6 +116,12 @@ public:
             this->packageName = GET_JAVA_STRING(env, data, "getPackageName");
             this->launcherActivity = GET_JAVA_STRING(env, data, "getLauncherActivity");
             this->libraryPath = GET_JAVA_STRING(env, data, "getLibraryPath");
+
+            jclass cls = env->GetObjectClass(data);
+            this->injectType = env->CallIntMethod(data, env->GetMethodID(cls, "getInjectType", "()I"));
+            this->dexClassName = GET_JAVA_STRING(env, data, "getDexClassName");
+            this->dexMethodName = GET_JAVA_STRING(env, data, "getDexMethodName");
+            env->DeleteLocalRef(cls);
 
             this->shouldAutoLaunch = GET_JAVA_BOOL(env, data, "isShouldAutoLaunch");
             this->shouldKillBeforeLaunch = GET_JAVA_BOOL(env, data, "isShouldKillBeforeLaunch");
@@ -143,6 +158,18 @@ public:
             throw std::invalid_argument("Library path cannot be empty");
         }
         this->libraryPath = _libraryPath;
+    }
+
+    void setInjectType(int _injectType) {
+        this->injectType = _injectType;
+    }
+
+    void setDexClassName(const std::string& _dexClassName) {
+        this->dexClassName = _dexClassName;
+    }
+
+    void setDexMethodName(const std::string& _dexMethodName) {
+        this->dexMethodName = _dexMethodName;
     }
 
     void setShouldAutoLaunch(bool _shouldAutoLaunch) {
@@ -191,6 +218,18 @@ public:
 
     std::string getLibraryPath() {
         return this->libraryPath;
+    }
+
+    int getInjectType() {
+        return this->injectType;
+    }
+
+    std::string getDexClassName() {
+        return this->dexClassName;
+    }
+
+    std::string getDexMethodName() {
+        return this->dexMethodName;
     }
 
     bool getShouldAutoLaunch() {

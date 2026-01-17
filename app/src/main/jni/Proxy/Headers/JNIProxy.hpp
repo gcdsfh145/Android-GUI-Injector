@@ -12,5 +12,6 @@ namespace JNIProxy {
     auto GetCreatedJavaVMS();
 
     int JNILoad(JavaVM *vm, std::string libraryPath);
+    int DexLoad(JavaVM *vm, RemoteInjectorData *data);
     int Inject(RemoteInjectorData *data);
 }

@@ -12,6 +12,10 @@ public class InjectorData {
     private String launcherActivity;
     private String libraryPath;
 
+    private int injectType = 0; // 0 for SO, 1 for DEX
+    private String dexClassName = "io.github.reveny.dex.Main";
+    private String dexMethodName = "main";
+
     private boolean shouldAutoLaunch;
     private boolean shouldKillBeforeLaunch;
 
@@ -61,6 +65,30 @@ public class InjectorData {
 
     public void setLibraryPath(String libraryPath) {
         this.libraryPath = libraryPath;
+    }
+
+    public int getInjectType() {
+        return injectType;
+    }
+
+    public void setInjectType(int injectType) {
+        this.injectType = injectType;
+    }
+
+    public String getDexClassName() {
+        return dexClassName;
+    }
+
+    public void setDexClassName(String dexClassName) {
+        this.dexClassName = dexClassName;
+    }
+
+    public String getDexMethodName() {
+        return dexMethodName;
+    }
+
+    public void setDexMethodName(String dexMethodName) {
+        this.dexMethodName = dexMethodName;
     }
 
     public boolean isShouldAutoLaunch() {
@@ -142,6 +170,9 @@ public class InjectorData {
         data.putString("packageName", packageName);
         data.putString("launcherActivity", launcherActivity);
         data.putString("libraryPath", libraryPath);
+        data.putInt("injectType", injectType);
+        data.putString("dexClassName", dexClassName);
+        data.putString("dexMethodName", dexMethodName);
 
         data.putBoolean("shouldAutoLaunch", shouldAutoLaunch);
         data.putBoolean("shouldKillBeforeLaunch", shouldKillBeforeLaunch);
@@ -164,6 +195,9 @@ public class InjectorData {
         this.packageName = data.getString("packageName");
         this.launcherActivity = data.getString("launcherActivity");
         this.libraryPath = data.getString("libraryPath");
+        this.injectType = data.getInt("injectType");
+        this.dexClassName = data.getString("dexClassName");
+        this.dexMethodName = data.getString("dexMethodName");
 
         this.shouldAutoLaunch = data.getBoolean("shouldAutoLaunch");
         this.shouldKillBeforeLaunch = data.getBoolean("shouldKillBeforeLaunch");
