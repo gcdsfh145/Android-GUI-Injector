@@ -2,8 +2,8 @@
 GUI App for Injecting shared libraries or dex on Android
 
 [![Stars](https://img.shields.io/github/stars/reveny/Android-GUI-Injector?label=Stars)](https://github.com/reveny)
-[![Release](https://img.shields.io/github/v/release/reveny/Android-GUI-Injector?label=Release&logo=github)](https://github.com/gcdsfh145/Android-GUI-Injector/releases/latest)
-[![Download](https://img.shields.io/github/downloads/reveny/Android-GUI-Injector/total?label=Downloads&logo=github)](https://github.com/gcdsfh145/Android-GUI-Injector/releases/)
+[![Release](https://img.shields.io/github/v/release/reveny/Android-GUI-Injector?label=Release&logo=github)](https://github.com/reveny/Android-GUI-Injector/releases/latest)
+[![Download](https://img.shields.io/github/downloads/reveny/Android-GUI-Injector/total?label=Downloads&logo=github)](https://github.com/reveny/Android-GUI-Injector/releases/)
 [![Channel](https://img.shields.io/badge/Telegram-Channel-blue.svg?logo=telegram)](https://t.me/reveny1)
 [![CI](https://github.com/reveny/Android-GUI-Injector/actions/workflows/main.yml/badge.svg)](https://github.com/reveny/Android-GUI-Injector/actions/workflows/main.yml)
 
@@ -19,11 +19,9 @@ GUI App for Injecting shared libraries or dex on Android
 - [x] Bypass some common detections
 - [x] Select target library through file picker
 - [x] Easy to use UI
-- [x] Detecting zygisk
 - [ ] Inject through zygote
 - [ ] Spoof app package name (to be added)
-- [x] Support injecting dex
-
+- [x] Support injecting dex (to be added)
 
 # Build and Installation
 Android Studio is required: https://developer.android.com/studio  <br />
