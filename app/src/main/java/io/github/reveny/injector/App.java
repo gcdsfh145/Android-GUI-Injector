@@ -58,4 +58,14 @@ public class App extends Application {
         String tag = getPreferences().getString("language", null);
         return getLocale(tag);
     }
+
+    public static void setLocaleTag(String tag) {
+        Locale locale = getLocale(tag);
+        LocaleDelegate.setDefaultLocale(locale);
+
+        var res = getInstance().getResources();
+        var config = res.getConfiguration();
+        config.setLocale(locale);
+        res.updateConfiguration(config, res.getDisplayMetrics());
+    }
 }

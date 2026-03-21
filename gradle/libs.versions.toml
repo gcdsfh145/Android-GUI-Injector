@@ -1,13 +1,18 @@
 [versions]
 agp = "8.13.0"
+kotlin = "1.9.25"
 core = "4.6.2"
 coreVersion = "6.0.0"
 nav = "2.8.3"
 okhttp = "4.12.0"
+activityCompose = "1.10.1"
+composeBom = "2024.10.01"
+lifecycleRuntimeCompose = "2.8.7"
 
 [plugins]
 agp-lib = { id = "com.android.library", version.ref = "agp" }
 agp-app = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nav-safeargs = { id = "androidx.navigation.safeargs", version.ref = "nav" }
 autoresconfig = { id = "dev.rikka.tools.autoresconfig", version = "1.2.2" }
 materialthemebuilder = { id = "dev.rikka.tools.materialthemebuilder", version = "1.4.1" }
@@ -47,6 +52,17 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-dnsoverhttps = { group = "com.squareup.okhttp3", name = "okhttp-dnsoverhttps", version.ref = "okhttp" }
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 gson = { module = "com.google.code.gson:gson", version = "2.10.1" }
+jetbrains-annotations = { module = "org.jetbrains:annotations", version = "24.1.0" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-material-icons = { module = "androidx.compose.material:material-icons-extended" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 [bundles]
 androidx = ["androidx-activity", "androidx-browser", "androidx-constraintlayout", "androidx-core", "androidx-fragment", "androidx-navigation-ui", "androidx-navigation-fragment", "androidx-preference", "androidx-recyclerview", "androidx-swiperefreshlayout"]
 materialui = ["rikkax-appcompat", "rikkax-core", "rikkax-insets", "rikkax-layoutinflater", "rikkax-material", "rikkax-preference", "rikkax-recyclerview", "rikkax-widget-borderview", "rikkax-widget-mainswitchbar", "material"]
+compose = ["androidx-activity-compose", "androidx-lifecycle-runtime-compose", "androidx-compose-ui", "androidx-compose-ui-graphics", "androidx-compose-ui-tooling-preview", "androidx-compose-material3", "androidx-compose-material-icons"]

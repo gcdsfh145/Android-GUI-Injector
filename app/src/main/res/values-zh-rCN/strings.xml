@@ -21,6 +21,18 @@
     <string name="theme_color_system">系统主题颜色</string>
     <string name="settings_group_system">系统</string>
     <string name="settings_language">语言</string>
+    <string name="settings_language_description">选择应用界面的显示语言，切换后会立即刷新当前界面。</string>
+    <string name="language_current">当前语言</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_system_summary">自动跟随设备系统语言。</string>
+    <string name="language_simplified_chinese">简体中文</string>
+    <string name="language_simplified_chinese_summary">应用界面使用中文显示。</string>
+    <string name="language_english">英语</string>
+    <string name="language_english_summary">应用界面使用英文显示。</string>
+    <string name="tab_overview">概览</string>
+    <string name="tab_injection">注入</string>
+    <string name="tab_logs">日志</string>
+    <string name="tab_settings">设置</string>
 
     <string name="color_sakura">樱花</string>
     <string name="color_red">红色</string>

@@ -5,6 +5,7 @@ import java.time.Instant
 
 plugins {
     alias(libs.plugins.agp.app)
+    id("org.jetbrains.kotlin.android")
     alias(libs.plugins.nav.safeargs)
     alias(libs.plugins.autoresconfig)
     alias(libs.plugins.materialthemebuilder)
@@ -15,9 +16,16 @@ val defaultManagerPackageName: String by rootProject.extra
 android {
 
 
+
+
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     defaultConfig {
@@ -36,6 +44,7 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles("proguard-rules.pro")
+  
         }
         debug {
             isMinifyEnabled = false
@@ -90,8 +99,11 @@ dependencies {
     implementation(libs.libsu.service)
     implementation(libs.libsu.nio)
 
+    implementation(platform(libs.androidx.compose.bom))
+
     /** Material 3 'UI' Implementations */
     implementation(libs.bundles.materialui)
+    implementation(libs.bundles.compose)
     /** AndroidX Implementations */
     implementation(libs.bundles.androidx)
     /** SSL / HTTPS Implementations */
@@ -99,11 +111,13 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.dnsoverhttps)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.jetbrains.annotations)
     implementation(libs.core)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
 }
 
 configurations.all {
-    exclude("org.jetbrains", "annotations")
     exclude("androidx.appcompat", "appcompat")
     exclude("org.jetbrains.kotlin", "kotlin-stdlib-jdk7")
     exclude("org.jetbrains.kotlin", "kotlin-stdlib-jdk8")
