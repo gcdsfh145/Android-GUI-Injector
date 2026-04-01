@@ -11,5 +11,6 @@ namespace Utility {
 
     std::string GetProcessName();
     std::string GetSystemProperty(const char *property);
+    bool IsProbablyEmulator();
     ELFParser::MachineType GetMachineType();
 }

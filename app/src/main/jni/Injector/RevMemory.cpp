@@ -458,8 +458,8 @@ void RevMemory::LaunchApp(std::string activity) {
     system(command.c_str());
 }
 
-pid_t RevMemory::WaitForProcess(std::string packageName) {
-    while (true) {
+pid_t RevMemory::WaitForProcess(std::string packageName, int timeoutSeconds) {
+    for (int elapsed = 0; elapsed < timeoutSeconds; ++elapsed) {
         int pid = FindProcessID(packageName);
         if (pid != -1) {
             // Ensure the process is fully started
@@ -468,6 +468,8 @@ pid_t RevMemory::WaitForProcess(std::string packageName) {
         }
         sleep(1);
     }
+    LOGE("[-] Timed out while waiting for process %s", packageName.c_str());
+    return -1;
 }
 
 pid_t RevMemory::FindProcessID(std::string packageName) {
@@ -504,12 +506,12 @@ pid_t RevMemory::FindProcessID(std::string packageName) {
     return -1;
 }
 
-void RevMemory::SetSELinux(int enabled) {
+bool RevMemory::SetSELinux(int enabled) {
     #if defined(__arm__) || defined(__aarch64__)
     std::ifstream mountsFile("/proc/mounts");
     if (!mountsFile.is_open()) {
         std::cerr << "Failed to open /proc/mounts" << std::endl;
-        return;
+        return false;
     }
 
     std::string line;
@@ -527,22 +529,27 @@ void RevMemory::SetSELinux(int enabled) {
         std::ofstream selinuxFile(selinux_path);
         if (!selinuxFile.is_open()) {
             LOGE("[-] Failed to open %s", selinux_path.c_str());
-            return;
+            return false;
         }
 
         selinuxFile << (enabled ? "1" : "0");
         selinuxFile.close();
-        break;
+        LOGI("[+] SELinux enforce set to %d", enabled);
+        mountsFile.close();
+        return true;
     }
     mountsFile.close();
+    return false;
     #elif defined(__x86_64__) || defined(__i386__)
     // Attempt to set SELinux, if it doesn't succeed, it should not
     // crash the emulator like the other code does
     if (enabled) {
-        system("setenforce 1");
+        return system("setenforce 1") == 0;
     } else {
-        system("setenforce 0");
+        return system("setenforce 0") == 0;
     }
+    #else
+    return false;
     #endif
 }
 

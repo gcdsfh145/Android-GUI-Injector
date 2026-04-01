@@ -45,4 +45,9 @@ public class RootManager {
 
         return res.isEmpty() ? "-1" : res.get(0);
     }
+
+    public boolean clearInjectionCache() {
+        var result = Shell.cmd("rm -rf /data/local/tmp/inject/*").exec();
+        return result.isSuccess();
+    }
 }

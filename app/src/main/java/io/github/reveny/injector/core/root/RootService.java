@@ -10,16 +10,16 @@ import android.os.Messenger;
 
 import androidx.annotation.NonNull;
 
-import com.topjohnwu.superuser.Shell;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.github.reveny.injector.core.InjectorData;
 import io.github.reveny.injector.core.LogManager;
 import io.github.reveny.injector.core.Native;
 
 public class RootService extends com.topjohnwu.superuser.ipc.RootService implements Handler.Callback {
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+
     @Override
     public IBinder onBind(@NonNull Intent intent) {
         LogManager.AddLog("RootService: onBind");
@@ -36,21 +36,41 @@ public class RootService extends com.topjohnwu.superuser.ipc.RootService impleme
             return false;
         }
 
-        InjectorData data = new InjectorData().fromMessage(msg);
-        int result = Native.Inject(data);
-        String[] logs = Native.GetNativeLogs();
+        final InjectorData data = new InjectorData().fromMessage(msg);
+        final Messenger replyTo = msg.replyTo;
+        EXECUTOR.execute(() -> {
+            int result = -1;
+            String detail = "Injection failed";
 
-        Message message = Message.obtain();
-        Bundle bundle = new Bundle();
-        bundle.putInt("result", result);
-        bundle.putStringArray("logs", logs);
-        message.setData(bundle);
+            try {
+                result = Native.Inject(data);
+                detail = result == -1 ? "Native injector returned failure" : "Injection completed";
+            } catch (Throwable throwable) {
+                LogManager.AddLog("Native inject crashed: " + throwable.getMessage());
+                detail = "Native inject crashed: " + throwable.getClass().getSimpleName();
+            }
 
-        try {
-            msg.replyTo.send(message);
-        } catch (Exception e) {
-            LogManager.AddLog("Failed to send message: " + e.getMessage());
-        }
+            String[] logs;
+            try {
+                logs = Native.GetNativeLogs();
+            } catch (Throwable throwable) {
+                LogManager.AddLog("Failed to read native logs: " + throwable.getMessage());
+                logs = new String[0];
+            }
+
+            Message message = Message.obtain();
+            Bundle bundle = new Bundle();
+            bundle.putInt("result", result);
+            bundle.putString("message", detail);
+            bundle.putStringArray("logs", logs);
+            message.setData(bundle);
+
+            try {
+                replyTo.send(message);
+            } catch (Exception e) {
+                LogManager.AddLog("Failed to send message: " + e.getMessage());
+            }
+        });
 
         return false;
     }

@@ -17,6 +17,10 @@ std::string Utility::GetSystemProperty(const char *property) {
     return {prop};
 }
 
+bool Utility::IsProbablyEmulator() {
+    return GetSystemProperty("ro.kernel.qemu") == "1";
+}
+
 std::string Utility::GetProcessName() {
     FILE *file = fopen("/proc/self/cmdline", "r");
     if (file == nullptr) {

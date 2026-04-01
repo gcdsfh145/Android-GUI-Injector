@@ -19,13 +19,13 @@
 
 extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     (void)clazz;
+    ClearLogs();
     LOGI("[+] Inject called");
 
     std::shared_ptr<InjectorData> injectorData = std::make_shared<InjectorData>(env, data);
 
-    // Handle SELinux
-    // NOTE: Causes crashes on emulators, most emulators don't need selinux
-    RevMemory::SetSELinux(0);
+    const bool shouldToggleSELinux = !Utility::IsProbablyEmulator();
+    const bool selinuxDisabled = shouldToggleSELinux && RevMemory::SetSELinux(0);
 
     // Since the native library is likely at a place like /sdcard/ we need to make sure
     // to copy it to a directory where it can be executed from.
@@ -56,10 +56,16 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     }
 
     // Wait until process is ready
-    pid_t processID = RevMemory::WaitForProcess(injectorData->getPackageName());
+    pid_t processID = RevMemory::WaitForProcess(
+        injectorData->getPackageName(),
+        injectorData->getShouldAutoLaunch() ? 20 : 8
+    );
 
     if (processID == -1) {
         LOGE("[-] Failed to find target process, aborting.");
+        if (selinuxDisabled) {
+            (void)RevMemory::SetSELinux(1);
+        }
         return -1;
     }
 
@@ -87,7 +93,9 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
         LOGI("[+] Finished Proxy Injection with result %d", result);
 
         // Handle SELinux
-        RevMemory::SetSELinux(1);
+        if (selinuxDisabled) {
+            (void)RevMemory::SetSELinux(1);
+        }
 
         return result;
     }
@@ -114,7 +122,9 @@ extern "C" jint Injector::Inject(JNIEnv* env, jclass clazz, jobject data) {
     LOGI("[+] Finished Injection with result %d", result);
 
     // Handle SELinux
-    RevMemory::SetSELinux(1);
+    if (selinuxDisabled) {
+        (void)RevMemory::SetSELinux(1);
+    }
 
     return result;
 }
@@ -129,6 +139,7 @@ extern "C" jobjectArray Injector::GetNativeLogs(JNIEnv *env, jclass clazz) {
     for (size_t i = 0; i < log_messages.size(); ++i) {
         env->SetObjectArrayElement(ret, static_cast<jlong>(i), env->NewStringUTF(log_messages[i].c_str()));
     }
+    ClearLogs();
 
     return ret;
 }

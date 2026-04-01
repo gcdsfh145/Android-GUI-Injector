@@ -19,6 +19,9 @@ enum daLogType {
 };
 
 inline std::vector<std::string> log_messages{};
+inline void ClearLogs() {
+    log_messages.clear();
+}
 inline void CustomLog(daLogType type, const char* tag, const char* message, ...) {
     char msg[256];
     va_list arg;

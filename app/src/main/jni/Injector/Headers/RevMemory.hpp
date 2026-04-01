@@ -45,10 +45,10 @@ namespace RevMemory {
     bool ProcessVirtualMemory(pid_t pid, void *address, void *buffer, size_t size, bool iswrite);
 
     void LaunchApp(std::string activity);
-    pid_t WaitForProcess(std::string packageName);
+    pid_t WaitForProcess(std::string packageName, int timeoutSeconds);
     pid_t FindProcessID(std::string packageName);
 
-    void SetSELinux(int enabled);
+    bool SetSELinux(int enabled);
     std::string GetNativeLibraryDirectory();
 
     uintptr_t GetModuleBase(pid_t pid, std::string loduleName);

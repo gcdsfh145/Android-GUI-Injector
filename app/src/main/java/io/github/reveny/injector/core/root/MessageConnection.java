@@ -2,12 +2,9 @@ package io.github.reveny.injector.core.root;
 
 import android.content.ComponentName;
 import android.content.ServiceConnection;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Messenger;
 
-import io.github.reveny.injector.core.InjectorData;
 import io.github.reveny.injector.core.LogManager;
 
 public class MessageConnection implements ServiceConnection {
@@ -24,15 +21,7 @@ public class MessageConnection implements ServiceConnection {
 
         handler.remoteMessenger = new Messenger(service);
         handler.messageConnection = this;
-
-        Message message = InjectorData.instance.toMessage(1);
-        message.replyTo = handler.replyMessenger;
-
-        try {
-            handler.remoteMessenger.send(message);
-        } catch (Exception e) {
-            LogManager.AddLog("Failed to send message: " + e.getMessage());
-        }
+        handler.dispatchPendingInjection();
     }
 
     @Override
