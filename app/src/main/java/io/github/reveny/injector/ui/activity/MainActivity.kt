@@ -310,7 +310,7 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
 
     fun updateBypassRestrictions(value: Boolean) {
         if (value && Utility.isEmulator()) {
-            LogManager.AddLog("Emulator detected, namespace bypass disabled")
+            LogManager.AddLog(appContext.getString(R.string.message_emulator_bypass_disabled))
             refreshLogs()
             return
         }
@@ -340,12 +340,12 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
                     RootManager.instance?.clearInjectionCache() == true
                 }.getOrDefault(false)
                 if (rootCleared) {
-                    "root temp cleared"
+                    appContext.getString(R.string.cache_root_cleared)
                 } else {
-                    "root temp not cleared"
+                    appContext.getString(R.string.cache_root_not_cleared)
                 }
             } else {
-                "root not granted"
+                appContext.getString(R.string.cache_root_not_granted)
             }
 
             _uiState.update {
@@ -356,8 +356,8 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
                         processId = if (it.injection.packageName.isBlank()) "-1" else it.injection.processId
                     ),
                     status = StatusBanner(
-                        title = "Injection cache cleared",
-                        detail = "Removed $deletedLocal local payload file(s), $rootMessage.",
+                        title = appContext.getString(R.string.status_cache_cleared),
+                        detail = appContext.getString(R.string.status_cache_cleared_detail, deletedLocal, rootMessage),
                         isError = false
                     )
                 )
@@ -365,7 +365,7 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
             LogManager.AddLog("Injection cache cleared: local=$deletedLocal, $rootMessage")
             refreshLogs()
             withContext(Dispatchers.Main) {
-                onResult("Removed $deletedLocal local payload file(s), $rootMessage")
+                onResult(appContext.getString(R.string.status_cache_cleared_detail, deletedLocal, rootMessage))
             }
         }
     }
@@ -389,11 +389,11 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
                     )
                 }
                 withContext(Dispatchers.Main) {
-                    onResult("Payload staged: ${payload.displayName}")
+                    onResult(appContext.getString(R.string.message_payload_staged, payload.displayName))
                 }
             }.onFailure {
                 withContext(Dispatchers.Main) {
-                    onResult("Failed to read selected file")
+                    onResult(appContext.getString(R.string.message_failed_read_selected_file))
                 }
             }
         }
@@ -406,19 +406,19 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
     ) {
         val state = uiState.value.injection
         if (state.packageName.isBlank()) {
-            onResult("Please select a target package")
+            onResult(appContext.getString(R.string.message_select_target_package))
             return
         }
         if (state.libraryPath.isBlank()) {
-            onResult("Please select a payload file")
+            onResult(appContext.getString(R.string.message_select_payload_file))
             return
         }
         if (!File(state.libraryPath).exists()) {
-            onResult("Staged payload is missing, reselect the file")
+            onResult(appContext.getString(R.string.message_staged_payload_missing))
             return
         }
         if (RootManager.instance?.hasRootAccess != true) {
-            onResult("Root access not granted yet")
+            onResult(appContext.getString(R.string.message_root_not_granted))
             return
         }
 
@@ -443,8 +443,8 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
             it.copy(
                 injection = state.copy(isInjecting = true),
                 status = StatusBanner(
-                    title = "Injection running",
-                    detail = "Dispatching request to the root service",
+                    title = appContext.getString(R.string.status_injection_running),
+                    detail = appContext.getString(R.string.status_dispatching_root_service),
                     isError = false
                 )
             )
@@ -462,7 +462,8 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
                     current.copy(
                         injection = current.injection.copy(isInjecting = false),
                         status = StatusBanner(
-                            title = if (success) "Injection completed" else "Injection failed",
+                            title = if (success) appContext.getString(R.string.status_injection_completed)
+                            else appContext.getString(R.string.status_injection_failed),
                             detail = message,
                             isError = !success
                         )
@@ -498,7 +499,11 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
             "/system/xbin/su",
             "/sbin/su"
         )
-        return if (knownPaths.any { File(it).exists() }) "Magisk or compatible" else "Not detected"
+        return if (knownPaths.any { File(it).exists() }) {
+            appContext.getString(R.string.value_magisk_compatible)
+        } else {
+            appContext.getString(R.string.value_not_detected)
+        }
     }
 
     private fun checkZygiskStatusWithRoot(): String {
@@ -506,9 +511,13 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
             val process = Runtime.getRuntime().exec("su -c ls /data/adb/modules")
             val output = process.inputStream.bufferedReader().use { it.readText() }
             process.waitFor()
-            if (output.contains("zygisksu") || output.contains("zygisk")) "Detected" else "Not detected"
+            if (output.contains("zygisksu") || output.contains("zygisk")) {
+                appContext.getString(R.string.state_detected)
+            } else {
+                appContext.getString(R.string.value_not_detected)
+            }
         } catch (_: Exception) {
-            "Unknown"
+            appContext.getString(R.string.value_unknown)
         }
     }
 
@@ -517,9 +526,9 @@ private class MainViewModel(private val appContext: Context) : ViewModel() {
             val process = Runtime.getRuntime().exec("su -c getenforce")
             val status = process.inputStream.bufferedReader().use { it.readLine()?.trim().orEmpty() }
             process.waitFor()
-            if (status.isNotEmpty()) "SELinux $status" else "SELinux Unknown"
+            if (status.isNotEmpty()) "SELinux $status" else appContext.getString(R.string.value_selinux_unknown)
         } catch (_: Exception) {
-            "SELinux Unknown"
+            appContext.getString(R.string.value_selinux_unknown)
         }
     }
 
@@ -691,7 +700,7 @@ private fun MainRoute(viewModel: MainViewModel, rootHandler: RootHandler) {
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 MainTab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = uiState.currentTab == tab,
@@ -740,9 +749,12 @@ private fun MainRoute(viewModel: MainViewModel, rootHandler: RootHandler) {
                     onCopy = {
                         val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
                         clipboard?.setPrimaryClip(
-                            android.content.ClipData.newPlainText("logs", viewModel.copyLogsText())
+                            android.content.ClipData.newPlainText(
+                                context.getString(R.string.tab_logs),
+                                viewModel.copyLogsText()
+                            )
                         )
-                        scope.launch { snackbars.showSnackbar("Logs copied") }
+                        scope.launch { snackbars.showSnackbar(context.getString(R.string.message_logs_copied)) }
                     },
                     onClear = viewModel::clearLogs
                 )
@@ -768,7 +780,14 @@ private fun MainRoute(viewModel: MainViewModel, rootHandler: RootHandler) {
 private fun MainTopBar(currentTab: MainTab, onRefresh: () -> Unit) {
     CenterAlignedTopAppBar(
         title = {
-            Text(stringResource(currentTab.labelRes), fontWeight = FontWeight.SemiBold)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.workspace_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(currentTab.labelRes),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -794,23 +813,24 @@ private fun OverviewScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            SectionCard("Workspace", Icons.Outlined.Info) {
-                Text(
-                    "统一的 Compose 注入工作台，管理目标应用、payload、root 状态和运行日志。",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            HeroCard(
+                title = stringResource(R.string.workspace_title),
+                subtitle = stringResource(R.string.workspace_description),
+                actionLabel = stringResource(R.string.action_open_injection),
+                onAction = onJumpToInject
+            ) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AssistChip(
                         onClick = {},
-                        label = { Text("Version ${BuildConfig.VERSION_NAME}") },
+                        label = { Text(stringResource(R.string.workspace_version, BuildConfig.VERSION_NAME)) },
                         leadingIcon = { Icon(Icons.Outlined.Android, contentDescription = null) }
                     )
                     AssistChip(
                         onClick = {},
-                        label = { Text(if (overview.rootGranted) "Root Ready" else "Root Pending") },
+                        label = { Text(stringResource(if (overview.rootGranted) R.string.workspace_root_ready else R.string.workspace_root_pending)) },
                         leadingIcon = { Icon(Icons.Outlined.Shield, contentDescription = null) }
                     )
                     AssistChip(
@@ -818,11 +838,6 @@ private fun OverviewScreen(
                         label = { Text(overview.primaryAbi) },
                         leadingIcon = { Icon(Icons.Outlined.Memory, contentDescription = null) }
                     )
-                }
-                OutlinedButton(onClick = onJumpToInject) {
-                    Icon(Icons.Outlined.Bolt, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Open Injection")
                 }
             }
         }
@@ -834,16 +849,31 @@ private fun OverviewScreen(
         }
 
         item {
-            SectionCard("Device Snapshot", Icons.Outlined.Security) {
-                OverviewRow(Icons.Outlined.Android, "System", overview.systemVersion)
-                OverviewRow(Icons.Outlined.AppShortcut, "Device", overview.device)
-                OverviewRow(Icons.Outlined.Memory, "Primary ABI", overview.primaryAbi)
-                OverviewRow(Icons.Outlined.Shield, "Root Binary", if (overview.isRooted) "Detected" else "Missing")
-                OverviewRow(Icons.Outlined.CheckCircle, "Root Session", if (overview.rootGranted) "Granted" else "Waiting")
-                OverviewRow(Icons.Outlined.Security, "Root Stack", overview.rootSystem)
-                OverviewRow(Icons.Outlined.Bolt, "Zygisk", overview.zygiskStatus)
-                OverviewRow(Icons.Outlined.Apps, "Environment", if (overview.isEmulator) "Emulator" else "Physical")
-                OverviewRow(Icons.Outlined.WarningAmber, "Security", overview.securityStatus, isLast = true)
+            SectionCard(
+                title = stringResource(R.string.section_device_snapshot),
+                icon = Icons.Outlined.Security
+            ) {
+                OverviewRow(Icons.Outlined.Android, stringResource(R.string.snapshot_system), overview.systemVersion)
+                OverviewRow(Icons.Outlined.AppShortcut, stringResource(R.string.snapshot_device), overview.device)
+                OverviewRow(Icons.Outlined.Memory, stringResource(R.string.snapshot_primary_abi), overview.primaryAbi)
+                OverviewRow(
+                    Icons.Outlined.Shield,
+                    stringResource(R.string.snapshot_root_binary),
+                    stringResource(if (overview.isRooted) R.string.state_detected else R.string.state_missing)
+                )
+                OverviewRow(
+                    Icons.Outlined.CheckCircle,
+                    stringResource(R.string.snapshot_root_session),
+                    stringResource(if (overview.rootGranted) R.string.state_granted else R.string.state_waiting)
+                )
+                OverviewRow(Icons.Outlined.Security, stringResource(R.string.snapshot_root_stack), overview.rootSystem)
+                OverviewRow(Icons.Outlined.Bolt, stringResource(R.string.snapshot_zygisk), overview.zygiskStatus)
+                OverviewRow(
+                    Icons.Outlined.Apps,
+                    stringResource(R.string.snapshot_environment),
+                    stringResource(if (overview.isEmulator) R.string.state_emulator else R.string.state_physical)
+                )
+                OverviewRow(Icons.Outlined.WarningAmber, stringResource(R.string.snapshot_security), overview.securityStatus, isLast = true)
             }
         }
     }
@@ -854,7 +884,7 @@ private fun StatusCard(status: StatusBanner) {
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (status.isError) Color(0xFFFFECE8) else Color(0xFFEAF8F0)
+            containerColor = if (status.isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
         Column(
@@ -865,11 +895,68 @@ private fun StatusCard(status: StatusBanner) {
                 Icon(
                     if (status.isError) Icons.Outlined.WarningAmber else Icons.Outlined.CheckCircle,
                     contentDescription = null,
-                    tint = if (status.isError) Color(0xFFAF3D28) else Color(0xFF226C43)
+                    tint = if (status.isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
                 )
-                Text(status.title, fontWeight = FontWeight.SemiBold)
+                Text(
+                    status.title,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (status.isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                )
             }
-            Text(status.detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                status.detail,
+                color = if (status.isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroCard(
+    title: String,
+    subtitle: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    )
+                )
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.86f)
+                )
+            }
+            content()
+            OutlinedButton(onClick = onAction) {
+                Icon(Icons.Outlined.Bolt, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(actionLabel)
+            }
         }
     }
 }
@@ -945,39 +1032,50 @@ private fun InjectionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                SectionCard("Injection Workflow", Icons.Outlined.Bolt) {
-                    Text(
-                        "文件会先暂存到应用私有缓存，再由 root/native 层复制到受控目录执行。",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                HeroCard(
+                    title = stringResource(R.string.section_injection_workflow),
+                    subtitle = stringResource(R.string.label_payload_workflow_description),
+                    actionLabel = stringResource(R.string.action_pick_file),
+                    onAction = onPickLibrary
+                ) {
+                    if (state.injection.payloadLabel.isNotBlank()) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(state.injection.payloadLabel) },
+                            leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) }
+                        )
+                    }
                 }
             }
 
             item {
-                SectionCard("Target", Icons.Outlined.Apps) {
+                SectionCard(title = stringResource(R.string.section_target), icon = Icons.Outlined.Apps) {
                     ReadonlyField(
-                        label = "Target App",
+                        label = stringResource(R.string.label_target_app),
                         value = if (state.injection.packageName.isBlank()) {
-                            "Tap to choose an installed app"
+                            stringResource(R.string.label_target_app_placeholder)
                         } else {
                             "${state.injection.selectedAppLabel} (${state.injection.packageName})"
                         },
-                        buttonLabel = "Browse",
+                        buttonLabel = stringResource(R.string.action_browse),
                         onClick = { appSheetOpen = true }
                     )
                     Spacer(Modifier.height(8.dp))
                     TripleStatRow(
-                        "Package" to state.injection.packageName.ifBlank { "Not selected" },
-                        "PID" to state.injection.processId,
-                        "UID" to if (state.injection.appUid >= 0) state.injection.appUid.toString() else "-"
+                        stringResource(R.string.label_package) to state.injection.packageName.ifBlank { "-" },
+                        stringResource(R.string.label_pid) to state.injection.processId,
+                        stringResource(R.string.label_uid) to if (state.injection.appUid >= 0) state.injection.appUid.toString() else "-"
                     )
                 }
             }
 
             item {
-                SectionCard("Payload", Icons.Outlined.FolderOpen) {
+                SectionCard(title = stringResource(R.string.section_payload), icon = Icons.Outlined.FolderOpen) {
                     TabRow(selectedTabIndex = state.injection.injectType) {
-                        listOf("Shared Library", "DEX Entry").forEachIndexed { index, title ->
+                        listOf(
+                            stringResource(R.string.label_shared_library),
+                            stringResource(R.string.label_dex_entry)
+                        ).forEachIndexed { index, title ->
                             Tab(
                                 selected = state.injection.injectType == index,
                                 onClick = { onInjectTypeChange(index) },
@@ -987,10 +1085,14 @@ private fun InjectionScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     ReadonlyField(
-                        label = if (state.injection.injectType == 0) "Library Path (.so)" else "DEX Path (.dex)",
-                        value = state.injection.payloadLabel.ifBlank { "No payload selected" },
-                        supporting = state.injection.libraryPath.ifBlank { "Payload will be staged into app cache first" },
-                        buttonLabel = "Pick File",
+                        label = if (state.injection.injectType == 0) {
+                            stringResource(R.string.label_library_path)
+                        } else {
+                            stringResource(R.string.label_dex_path)
+                        },
+                        value = state.injection.payloadLabel.ifBlank { stringResource(R.string.label_no_payload_selected) },
+                        supporting = state.injection.libraryPath.ifBlank { stringResource(R.string.label_payload_staging_note) },
+                        buttonLabel = stringResource(R.string.action_pick_file),
                         onClick = onPickLibrary
                     )
                     AnimatedVisibility(visible = state.injection.injectType == 1) {
@@ -999,16 +1101,16 @@ private fun InjectionScreen(
                                 value = state.injection.dexClassName,
                                 onValueChange = onDexClassChange,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("DEX Class Name") },
-                                supportingText = { Text("默认会尝试调用 static method(Context)、static method() 或 main(String[])") },
+                                label = { Text(stringResource(R.string.label_dex_class_name)) },
+                                supportingText = { Text(stringResource(R.string.label_dex_class_hint)) },
                                 singleLine = true
                             )
                             OutlinedTextField(
                                 value = state.injection.dexMethodName,
                                 onValueChange = onDexMethodChange,
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("DEX Method Name") },
-                                supportingText = { Text("例如 main 或 initialize") },
+                                label = { Text(stringResource(R.string.label_dex_method_name)) },
+                                supportingText = { Text(stringResource(R.string.label_dex_method_hint)) },
                                 singleLine = true
                             )
                         }
@@ -1017,17 +1119,17 @@ private fun InjectionScreen(
             }
 
             item {
-                SectionCard("Execution Policy", Icons.Outlined.Shield) {
-                    ToggleRow("Auto Launch", state.injection.shouldAutoLaunch, onAutoLaunchChange)
-                    ToggleRow("Kill Before Auto Launch", state.injection.shouldKillBeforeLaunch, onKillBeforeLaunchChange)
+                SectionCard(title = stringResource(R.string.section_execution_policy), icon = Icons.Outlined.Shield) {
+                    ToggleRow(stringResource(R.string.toggle_auto_launch), state.injection.shouldAutoLaunch, onAutoLaunchChange)
+                    ToggleRow(stringResource(R.string.toggle_kill_before_launch), state.injection.shouldKillBeforeLaunch, onKillBeforeLaunchChange)
                     AnimatedVisibility(visible = state.injection.injectType == 0) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Spacer(Modifier.height(4.dp))
-                            ToggleRow("Remap Library", state.injection.remapLibrary, onRemapChange)
-                            ToggleRow("Use Proxy Library", state.injection.useProxy, onUseProxyChange)
-                            ToggleRow("Randomize Proxy Name", state.injection.randomizeProxyName, onRandomizeProxyChange)
-                            ToggleRow("Hide Loaded Library", state.injection.hideLibrary, onHideLibraryChange)
-                            ToggleRow("Bypass Namespace Restrictions", state.injection.bypassNamespaceRestrictions, onBypassChange)
+                            ToggleRow(stringResource(R.string.toggle_remap_library), state.injection.remapLibrary, onRemapChange)
+                            ToggleRow(stringResource(R.string.toggle_use_proxy), state.injection.useProxy, onUseProxyChange)
+                            ToggleRow(stringResource(R.string.toggle_randomize_proxy), state.injection.randomizeProxyName, onRandomizeProxyChange)
+                            ToggleRow(stringResource(R.string.toggle_hide_library), state.injection.hideLibrary, onHideLibraryChange)
+                            ToggleRow(stringResource(R.string.toggle_bypass_namespace), state.injection.bypassNamespaceRestrictions, onBypassChange)
                         }
                     }
                 }
@@ -1036,7 +1138,7 @@ private fun InjectionScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(18.dp),
@@ -1047,10 +1149,10 @@ private fun InjectionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Outlined.Terminal, contentDescription = null)
-                            Text("Launch", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.section_launch), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         }
                         Text(
-                            "确认目标应用和 payload 后再启动注入。运行期间会持续刷新状态和日志。",
+                            stringResource(R.string.label_launch_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1067,7 +1169,12 @@ private fun InjectionScreen(
                         ) {
                             Icon(Icons.Outlined.Terminal, contentDescription = null)
                             Spacer(Modifier.width(10.dp))
-                            Text(if (state.injection.isInjecting) "Injection Running" else "Start Injection")
+                            Text(
+                                stringResource(
+                                    if (state.injection.isInjecting) R.string.action_injection_running
+                                    else R.string.action_start_injection
+                                )
+                            )
                         }
                     }
                 }
@@ -1106,12 +1213,12 @@ private fun AppPickerSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Select Target App", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.label_select_target_app), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search apps") },
+                label = { Text(stringResource(R.string.label_search_apps)) },
                 singleLine = true
             )
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1156,14 +1263,14 @@ private fun LogsScreen(logs: List<String>, onCopy: () -> Unit, onClear: () -> Un
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            SectionCard("Runtime Logs", Icons.AutoMirrored.Outlined.Article) {
+            SectionCard(title = stringResource(R.string.section_runtime_logs), icon = Icons.AutoMirrored.Outlined.Article) {
                 Text(
-                    "Java 与 native 日志会合并显示，便于排查 root service、payload staging 和注入阶段的问题。",
+                    stringResource(R.string.logs_description),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AssistChip(onClick = onCopy, label = { Text("Copy") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
-                    AssistChip(onClick = onClear, label = { Text("Clear") }, leadingIcon = { Icon(Icons.Outlined.WarningAmber, null) })
+                    AssistChip(onClick = onCopy, label = { Text(stringResource(R.string.action_copy)) }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
+                    AssistChip(onClick = onClear, label = { Text(stringResource(R.string.action_clear)) }, leadingIcon = { Icon(Icons.Outlined.WarningAmber, null) })
                 }
             }
         }
@@ -1172,8 +1279,8 @@ private fun LogsScreen(logs: List<String>, onCopy: () -> Unit, onClear: () -> Un
             item {
                 OutlinedCard(shape = RoundedCornerShape(20.dp)) {
                     Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("No logs yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text("触发一次刷新或注入后，这里会出现新的运行日志。")
+                        Text(stringResource(R.string.logs_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.logs_empty_summary))
                     }
                 }
             }
@@ -1199,16 +1306,16 @@ private fun SettingsScreen(
     val context = LocalContext.current
     val activity = context as Activity
     val darkThemeOptions = listOf(
-        "Light" to ThemeUtil.MODE_NIGHT_NO,
-        "Dark" to ThemeUtil.MODE_NIGHT_YES,
-        "System" to ThemeUtil.MODE_NIGHT_FOLLOW_SYSTEM
+        R.string.theme_option_light to ThemeUtil.MODE_NIGHT_NO,
+        R.string.theme_option_dark to ThemeUtil.MODE_NIGHT_YES,
+        R.string.theme_option_system to ThemeUtil.MODE_NIGHT_FOLLOW_SYSTEM
     )
     val colorOptions = listOf(
-        "Sakura" to "SAKURA",
-        "Blue" to "MATERIAL_BLUE",
-        "Teal" to "MATERIAL_TEAL",
-        "Green" to "MATERIAL_GREEN",
-        "Amber" to "MATERIAL_AMBER"
+        R.string.color_sakura to "SAKURA",
+        R.string.color_blue to "MATERIAL_BLUE",
+        R.string.color_teal to "MATERIAL_TEAL",
+        R.string.color_green to "MATERIAL_GREEN",
+        R.string.color_amber to "MATERIAL_AMBER"
     )
 
     LazyColumn(
@@ -1217,21 +1324,26 @@ private fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            SectionCard("Preferences", Icons.Outlined.Settings) {
+            SectionCard(title = stringResource(R.string.section_preferences), icon = Icons.Outlined.Settings) {
                 Text(
-                    "保留原有 SharedPreferences 键，改成标准 MD3 交互，不破坏兼容性。",
+                    stringResource(R.string.settings_description),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    stringResource(R.string.settings_cache_description),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedButton(onClick = onClearCache) {
                     Icon(Icons.Outlined.FolderOpen, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Clear Injection Cache")
+                    Text(stringResource(R.string.action_clear_injection_cache))
                 }
             }
         }
 
         item {
-            SectionCard("Language", Icons.Outlined.Translate) {
+            SectionCard(title = stringResource(R.string.section_language), icon = Icons.Outlined.Translate) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     languageOptions.forEach { option ->
                         FilterChip(
@@ -1253,7 +1365,7 @@ private fun SettingsScreen(
                 }
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Current", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.language_current_short), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(languageDisplayName(context, state.language), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                         Text(
                             localizedText(
@@ -1271,45 +1383,45 @@ private fun SettingsScreen(
         }
 
         item {
-            SectionCard("Theme", Icons.Outlined.Palette) {
-                ToggleRow("Follow system accent", state.followSystemAccent) { value ->
+            SectionCard(title = stringResource(R.string.section_theme), icon = Icons.Outlined.Palette) {
+                ToggleRow(stringResource(R.string.theme_follow_system_accent), state.followSystemAccent) { value ->
                     preferences.edit().putBoolean("follow_system_accent", value).apply()
                     onUpdate { it.copy(followSystemAccent = value) }
-                    onApply("Accent preference updated. Restart if overlays do not refresh.")
+                    onApply(context.getString(R.string.theme_follow_system_accent_message))
                 }
-                ToggleRow("Pure black dark theme", state.blackTheme) { value ->
+                ToggleRow(stringResource(R.string.theme_pure_black), state.blackTheme) { value ->
                     preferences.edit().putBoolean("black_dark_theme", value).apply()
                     onUpdate { it.copy(blackTheme = value) }
-                    onApply("Dark theme preference updated.")
+                    onApply(context.getString(R.string.theme_pure_black_message))
                 }
-                Text("Dark mode", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.theme_dark_mode), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    darkThemeOptions.forEach { (label, value) ->
+                    darkThemeOptions.forEach { (labelRes, value) ->
                         FilterChip(
                             selected = state.darkTheme == value,
                             onClick = {
                                 preferences.edit().putString("dark_theme", value).apply()
                                 onUpdate { it.copy(darkTheme = value) }
-                                onApply("Dark mode updated.")
+                                onApply(context.getString(R.string.theme_dark_mode_message))
                             },
-                            label = { Text(label) }
+                            label = { Text(stringResource(labelRes)) }
                         )
                     }
                 }
-                Text("Accent", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.theme_accent), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    colorOptions.forEach { (label, value) ->
+                    colorOptions.forEach { (labelRes, value) ->
                         FilterChip(
                             selected = state.themeColor == value,
                             onClick = {
                                 preferences.edit().putString("theme_color", value).apply()
                                 onUpdate { it.copy(themeColor = value) }
-                                onApply("Theme color updated.")
+                                onApply(context.getString(R.string.theme_color_message))
                             },
                             label = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Outlined.Palette, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Text(label)
+                                    Text(stringResource(labelRes))
                                 }
                             }
                         )
@@ -1332,7 +1444,7 @@ private fun SectionCard(
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1374,7 +1486,7 @@ private fun ReadonlyField(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(Icons.Outlined.FolderOpen, contentDescription = null)
-                    Text(value, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(value, modifier = Modifier.weight(1f), maxLines = 3, overflow = TextOverflow.Ellipsis)
                     TextButton(onClick = onClick) { Text(buttonLabel) }
                 }
                 if (!supporting.isNullOrBlank()) {
@@ -1385,15 +1497,20 @@ private fun ReadonlyField(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TripleStatRow(
     first: Pair<String, String>,
     second: Pair<String, String>,
     third: Pair<String, String>
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         listOf(first, second, third).forEach { (label, value) ->
-            OutlinedCard(modifier = Modifier.weight(1f)) {
+            OutlinedCard(modifier = Modifier.width(160.dp)) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(value, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1410,7 +1527,7 @@ private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, modifier = Modifier.weight(1f))
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -1442,18 +1559,18 @@ private fun InjectorComposeTheme(content: @Composable () -> Unit) {
     }
 
     val light = lightColorScheme(
-        primary = Color(0xFF4B5D92),
-        secondary = Color(0xFF5E5F71),
-        tertiary = Color(0xFF75546B),
-        background = Color(0xFFFBF8FD),
+        primary = Color(0xFF5B5FC7),
+        secondary = Color(0xFF625B71),
+        tertiary = Color(0xFF7D5260),
+        background = Color(0xFFF9F6FF),
         surface = Color(0xFFFFFBFF)
     )
     val dark = darkColorScheme(
-        primary = Color(0xFFB4C4FF),
-        secondary = Color(0xFFC6C5DA),
-        tertiary = Color(0xFFE3BAD7),
-        background = Color(0xFF131318),
-        surface = Color(0xFF1B1B20)
+        primary = Color(0xFFC2C3FF),
+        secondary = Color(0xFFCCC2DC),
+        tertiary = Color(0xFFEFB8C8),
+        background = Color(0xFF121218),
+        surface = Color(0xFF1C1B22)
     )
 
     val colorScheme = when {

@@ -9,6 +9,220 @@
 
 #include <xdl.h>
 
+namespace {
+    bool ClearJniException(JNIEnv *env, const char *stage, bool logAsWarning = false) {
+        if (env == nullptr || !env->ExceptionCheck()) {
+            return false;
+        }
+
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        if (logAsWarning) {
+            LOGW("[!] JNI exception cleared at %s", stage);
+        } else {
+            LOGE("[-] JNI exception cleared at %s", stage);
+        }
+        return true;
+    }
+
+    jobject GetApplicationContext(JNIEnv *env) {
+        jclass activityThreadClass = env->FindClass("android/app/ActivityThread");
+        if (activityThreadClass == nullptr) {
+            ClearJniException(env, "FindClass(ActivityThread)");
+            return nullptr;
+        }
+
+        jmethodID currentActivityThreadMethod = env->GetStaticMethodID(
+            activityThreadClass,
+            "currentActivityThread",
+            "()Landroid/app/ActivityThread;"
+        );
+        if (currentActivityThreadMethod == nullptr) {
+            ClearJniException(env, "GetStaticMethodID(currentActivityThread)");
+            env->DeleteLocalRef(activityThreadClass);
+            return nullptr;
+        }
+
+        jobject activityThread = env->CallStaticObjectMethod(activityThreadClass, currentActivityThreadMethod);
+        if (ClearJniException(env, "CallStaticObjectMethod(currentActivityThread)") || activityThread == nullptr) {
+            env->DeleteLocalRef(activityThreadClass);
+            return nullptr;
+        }
+
+        jmethodID getApplicationMethod = env->GetMethodID(activityThreadClass, "getApplication", "()Landroid/app/Application;");
+        if (getApplicationMethod == nullptr) {
+            ClearJniException(env, "GetMethodID(getApplication)");
+            env->DeleteLocalRef(activityThread);
+            env->DeleteLocalRef(activityThreadClass);
+            return nullptr;
+        }
+
+        jobject application = env->CallObjectMethod(activityThread, getApplicationMethod);
+        if (ClearJniException(env, "CallObjectMethod(getApplication)", true)) {
+            application = nullptr;
+        }
+
+        env->DeleteLocalRef(activityThread);
+        env->DeleteLocalRef(activityThreadClass);
+        return application;
+    }
+
+    jobject GetPreferredParentClassLoader(JNIEnv *env, jobject context) {
+        if (context != nullptr) {
+            jclass contextClass = env->GetObjectClass(context);
+            if (contextClass != nullptr) {
+                jmethodID getClassLoaderMethod = env->GetMethodID(contextClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+                if (getClassLoaderMethod != nullptr) {
+                    jobject loader = env->CallObjectMethod(context, getClassLoaderMethod);
+                    if (!ClearJniException(env, "Context.getClassLoader", true) && loader != nullptr) {
+                        env->DeleteLocalRef(contextClass);
+                        return loader;
+                    }
+                } else {
+                    ClearJniException(env, "GetMethodID(getClassLoader)", true);
+                }
+                env->DeleteLocalRef(contextClass);
+            }
+        }
+
+        jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
+        if (classLoaderClass == nullptr) {
+            ClearJniException(env, "FindClass(ClassLoader)");
+            return nullptr;
+        }
+
+        jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(
+            classLoaderClass,
+            "getSystemClassLoader",
+            "()Ljava/lang/ClassLoader;"
+        );
+        if (getSystemClassLoaderMethod == nullptr) {
+            ClearJniException(env, "GetStaticMethodID(getSystemClassLoader)");
+            env->DeleteLocalRef(classLoaderClass);
+            return nullptr;
+        }
+
+        jobject systemClassLoader = env->CallStaticObjectMethod(classLoaderClass, getSystemClassLoaderMethod);
+        if (ClearJniException(env, "CallStaticObjectMethod(getSystemClassLoader)")) {
+            systemClassLoader = nullptr;
+        }
+
+        env->DeleteLocalRef(classLoaderClass);
+        return systemClassLoader;
+    }
+
+    jstring GetOptimizedDirectory(JNIEnv *env, jobject context) {
+        if (context == nullptr) {
+            return nullptr;
+        }
+
+        jclass contextClass = env->GetObjectClass(context);
+        if (contextClass == nullptr) {
+            ClearJniException(env, "GetObjectClass(context)");
+            return nullptr;
+        }
+
+        jmethodID getCacheDirMethod = env->GetMethodID(contextClass, "getCacheDir", "()Ljava/io/File;");
+        if (getCacheDirMethod == nullptr) {
+            ClearJniException(env, "GetMethodID(getCacheDir)", true);
+            env->DeleteLocalRef(contextClass);
+            return nullptr;
+        }
+
+        jobject cacheDir = env->CallObjectMethod(context, getCacheDirMethod);
+        if (ClearJniException(env, "CallObjectMethod(getCacheDir)", true) || cacheDir == nullptr) {
+            env->DeleteLocalRef(contextClass);
+            return nullptr;
+        }
+
+        jclass fileClass = env->FindClass("java/io/File");
+        if (fileClass == nullptr) {
+            ClearJniException(env, "FindClass(File)", true);
+            env->DeleteLocalRef(cacheDir);
+            env->DeleteLocalRef(contextClass);
+            return nullptr;
+        }
+
+        jmethodID getAbsolutePathMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        if (getAbsolutePathMethod == nullptr) {
+            ClearJniException(env, "GetMethodID(getAbsolutePath)", true);
+            env->DeleteLocalRef(fileClass);
+            env->DeleteLocalRef(cacheDir);
+            env->DeleteLocalRef(contextClass);
+            return nullptr;
+        }
+
+        jstring optimizedDir = (jstring)env->CallObjectMethod(cacheDir, getAbsolutePathMethod);
+        if (ClearJniException(env, "CallObjectMethod(getAbsolutePath)", true)) {
+            optimizedDir = nullptr;
+        }
+
+        env->DeleteLocalRef(fileClass);
+        env->DeleteLocalRef(cacheDir);
+        env->DeleteLocalRef(contextClass);
+        return optimizedDir;
+    }
+
+    int InvokeDexEntry(JNIEnv *env, jclass loadedClass, const char *methodName, jobject context) {
+        struct Candidate {
+            const char *signature;
+            int mode;
+        };
+
+        const Candidate candidates[] = {
+            {"(Landroid/content/Context;)V", 0},
+            {"(Landroid/app/Application;)V", 1},
+            {"()V", 2},
+            {"([Ljava/lang/String;)V", 3},
+            {"(Ljava/lang/String;)V", 4}
+        };
+
+        for (const Candidate &candidate : candidates) {
+            jmethodID methodId = env->GetStaticMethodID(loadedClass, methodName, candidate.signature);
+            if (methodId == nullptr) {
+                ClearJniException(env, candidate.signature, true);
+                continue;
+            }
+
+            switch (candidate.mode) {
+                case 0:
+                case 1:
+                    if (context == nullptr) {
+                        continue;
+                    }
+                    env->CallStaticVoidMethod(loadedClass, methodId, context);
+                    break;
+                case 2:
+                    env->CallStaticVoidMethod(loadedClass, methodId);
+                    break;
+                case 3: {
+                    jclass stringClass = env->FindClass("java/lang/String");
+                    jobjectArray args = env->NewObjectArray(0, stringClass, nullptr);
+                    env->CallStaticVoidMethod(loadedClass, methodId, args);
+                    env->DeleteLocalRef(args);
+                    env->DeleteLocalRef(stringClass);
+                    break;
+                }
+                case 4: {
+                    jstring empty = env->NewStringUTF("");
+                    env->CallStaticVoidMethod(loadedClass, methodId, empty);
+                    env->DeleteLocalRef(empty);
+                    break;
+                }
+            }
+
+            if (ClearJniException(env, candidate.signature)) {
+                continue;
+            }
+
+            LOGI("[+] Successfully called static %s with signature %s", methodName, candidate.signature);
+            return 1;
+        }
+
+        return -1;
+    }
+}
+
 // https://github.com/Dr-TSNG/ZygiskNext/blob/338d3-165-11ce64378-17f66d9e4f179dc5b-1d1a8f/loader/src/injector/hook.cpp#L261
 auto JNIProxy::GetCreatedJavaVMS() {
     auto getCreatedJavaVMS = reinterpret_cast<jint (*)(JavaVM **, jsize, jsize *)>(dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs"));
@@ -100,77 +314,113 @@ int JNIProxy::DexLoad(JavaVM *vm, RemoteInjectorData *data) {
 
     LOGI("[+] DexLoad called for: %s", (char*)data->libraryPath);
 
-    // Get a ClassLoader. Using the system class loader might not find application classes,
-    // but for loading a new DEX it should be fine as a parent.
-    jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
-    jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderClass, "getSystemClassLoader", "()Ljava/lang/ClassLoader;");
-    jobject systemClassLoader = env->CallStaticObjectMethod(classLoaderClass, getSystemClassLoaderMethod);
+    jobject currentContext = GetApplicationContext(env);
+    if (currentContext == nullptr) {
+        LOGW("[!] Could not get Application Context, continuing with fallback class loader.");
+    } else {
+        LOGI("[+] Acquired Application Context for DEX entry invocation.");
+    }
 
-    // Path to DEX and optimized directory (cache)
+    jobject parentClassLoader = GetPreferredParentClassLoader(env, currentContext);
+    if (parentClassLoader == nullptr) {
+        LOGE("[-] Failed to acquire a parent ClassLoader");
+        if (currentContext != nullptr) {
+            env->DeleteLocalRef(currentContext);
+        }
+        return -1;
+    }
+
     jstring dexPath = env->NewStringUTF((char*)data->libraryPath);
-    
-    // Create DexClassLoader
-    jclass dexClassLoaderClass = env->FindClass("dalvik/system/DexClassLoader");
-    jmethodID dexClassLoaderContructor = env->GetMethodID(dexClassLoaderClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
+    jstring optimizedDir = GetOptimizedDirectory(env, currentContext);
 
-    // In modern Android (API 26+), optimizedDirectory should be null.
-    // The system will manage optimized dex files in the app's private data directory.
-    jobject dexClassLoader = env->NewObject(dexClassLoaderClass, dexClassLoaderContructor, dexPath, NULL, NULL, systemClassLoader);
+    jclass dexClassLoaderClass = env->FindClass("dalvik/system/DexClassLoader");
+    if (dexClassLoaderClass == nullptr) {
+        ClearJniException(env, "FindClass(DexClassLoader)");
+        env->DeleteLocalRef(parentClassLoader);
+        if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+        env->DeleteLocalRef(dexPath);
+        if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
+        return -1;
+    }
+
+    jmethodID dexClassLoaderContructor = env->GetMethodID(dexClassLoaderClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
+    if (dexClassLoaderContructor == nullptr) {
+        ClearJniException(env, "GetMethodID(DexClassLoader.<init>)");
+        env->DeleteLocalRef(dexClassLoaderClass);
+        env->DeleteLocalRef(parentClassLoader);
+        if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+        env->DeleteLocalRef(dexPath);
+        if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
+        return -1;
+    }
+
+    jobject dexClassLoader = env->NewObject(
+        dexClassLoaderClass,
+        dexClassLoaderContructor,
+        dexPath,
+        optimizedDir,
+        nullptr,
+        parentClassLoader
+    );
+    if (ClearJniException(env, "NewObject(DexClassLoader)")) {
+        dexClassLoader = nullptr;
+    }
 
     if (dexClassLoader == NULL) {
         LOGE("[-] Failed to create DexClassLoader");
+        env->DeleteLocalRef(dexClassLoaderClass);
+        env->DeleteLocalRef(parentClassLoader);
+        if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+        env->DeleteLocalRef(dexPath);
+        if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
         return -1;
     }
 
-    // Load the class
     jmethodID loadClassMethod = env->GetMethodID(dexClassLoaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    if (loadClassMethod == nullptr) {
+        ClearJniException(env, "GetMethodID(loadClass)");
+        env->DeleteLocalRef(dexClassLoader);
+        env->DeleteLocalRef(dexClassLoaderClass);
+        env->DeleteLocalRef(parentClassLoader);
+        if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+        env->DeleteLocalRef(dexPath);
+        if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
+        return -1;
+    }
+
     jstring className = env->NewStringUTF((char*)data->dexClassName);
     jclass loadedClass = (jclass)env->CallObjectMethod(dexClassLoader, loadClassMethod, className);
+    if (ClearJniException(env, "CallObjectMethod(loadClass)")) {
+        loadedClass = nullptr;
+    }
 
     if (loadedClass == NULL) {
         LOGE("[-] Failed to load class: %s", (char*)data->dexClassName);
+        env->DeleteLocalRef(className);
+        env->DeleteLocalRef(dexClassLoader);
+        env->DeleteLocalRef(dexClassLoaderClass);
+        env->DeleteLocalRef(parentClassLoader);
+        if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+        env->DeleteLocalRef(dexPath);
+        if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
         return -1;
     }
 
-    // Get the current Application (Context)
-    jclass activityThreadClass = env->FindClass("android/app/ActivityThread");
-    jmethodID currentActivityThreadMethod = env->GetStaticMethodID(activityThreadClass, "currentActivityThread", "()Landroid/app/ActivityThread;");
-    jobject activityThread = env->CallStaticObjectMethod(activityThreadClass, currentActivityThreadMethod);
-    jmethodID getApplicationMethod = env->GetMethodID(activityThreadClass, "getApplication", "()Landroid/app/Application;");
-    jobject currentContext = env->CallObjectMethod(activityThread, getApplicationMethod);
-
-    if (currentContext == NULL) {
-        LOGW("[!] Could not get Application Context, falling back to argumentless call");
+    int result = InvokeDexEntry(env, loadedClass, (char*)data->dexMethodName, currentContext);
+    if (result == -1) {
+        LOGE("[-] Failed to find or invoke static method: %s", (char*)data->dexMethodName);
     }
 
-    // Try calling with (Context) parameter
-    jmethodID methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "(Landroid/content/Context;)V");
-    if (methodId != NULL && currentContext != NULL) {
-        env->CallStaticVoidMethod(loadedClass, methodId, currentContext);
-        LOGI("[+] Successfully called static %s(Context)", (char*)data->dexMethodName);
-        return 1;
-    }
+    env->DeleteLocalRef(loadedClass);
+    env->DeleteLocalRef(className);
+    env->DeleteLocalRef(dexClassLoader);
+    env->DeleteLocalRef(dexClassLoaderClass);
+    env->DeleteLocalRef(parentClassLoader);
+    if (optimizedDir != nullptr) env->DeleteLocalRef(optimizedDir);
+    env->DeleteLocalRef(dexPath);
+    if (currentContext != nullptr) env->DeleteLocalRef(currentContext);
 
-    // Fallback: Call the method (assuming it's a static method with no arguments)
-    methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "()V");
-    if (methodId == NULL) {
-        // Try with ([Ljava/lang/String;)V (standard main method)
-        methodId = env->GetStaticMethodID(loadedClass, (char*)data->dexMethodName, "([Ljava/lang/String;)V");
-        if (methodId != NULL) {
-            jclass stringClass = env->FindClass("java/lang/String");
-            jobjectArray args = env->NewObjectArray(0, stringClass, NULL);
-            env->CallStaticVoidMethod(loadedClass, methodId, args);
-            LOGI("[+] Successfully called static %s with String[] args", (char*)data->dexMethodName);
-            return 1;
-        }
-        LOGE("[-] Failed to find static method: %s", (char*)data->dexMethodName);
-        return -1;
-    }
-
-    env->CallStaticVoidMethod(loadedClass, methodId);
-    LOGI("[+] Successfully called static %s", (char*)data->dexMethodName);
-
-    return 1;
+    return result;
 }
 
 int JNIProxy::Inject(RemoteInjectorData *data) {

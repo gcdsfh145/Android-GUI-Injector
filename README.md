@@ -8,7 +8,7 @@ GUI App for Injecting shared libraries or dex on Android
 [![CI](https://github.com/reveny/Android-GUI-Injector/actions/workflows/main.yml/badge.svg)](https://github.com/reveny/Android-GUI-Injector/actions/workflows/main.yml)
 
 # Features
-- [x] Android 5 - 15
+- [x] Android 5 - 16
 - [x] Support arm and arm64 emulation
 - [x] Inject on x86 & x86_64
 - [x] Hide Injection with remap hide   

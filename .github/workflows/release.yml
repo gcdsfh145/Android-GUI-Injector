@@ -10,6 +10,10 @@ on:
         description: 'Release Version (e.g. 1.0.0)'
         required: false
         default: ''
+      release_notes:
+        description: 'Release notes shown in the GitHub release body'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -53,7 +57,28 @@ jobs:
           # 3. 验证
           $BUILD_TOOLS_PATH/apksigner verify app-release-signed.apk
 
-      - name: Create GitHub Release
+      - name: Prepare Release Notes
+        if: ${{ inputs.release_notes != '' }}
+        run: |
+          cat <<'EOF' > release-notes.md
+          ${{ inputs.release_notes }}
+          EOF
+
+      - name: Create GitHub Release With Custom Notes
+        if: ${{ inputs.release_notes != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-release-signed.apk
+          name: ${{ inputs.version != '' && format('Release {0}', inputs.version) || format('Release {0}', github.run_number) }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.version != '' && inputs.version || format('build-{0}', github.run_number)) }}
+          draft: false
+          prerelease: false
+          body_path: release-notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release With Auto Notes
+        if: ${{ inputs.release_notes == '' }}
         uses: softprops/action-gh-release@v2
         with:
           files: app-release-signed.apk

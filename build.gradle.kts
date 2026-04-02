@@ -10,7 +10,7 @@ plugins {
 
 val defaultManagerPackageName by extra("io.github.reveny.injector")
 val verCode by extra(3)
-val verName by extra("3.0.4")
+val verName by extra("3.1.0")
 val androidTargetSdkVersion by extra(36)
 val androidMinSdkVersion by extra(23)
 val androidBuildToolsVersion by extra("36.0.0")
